@@ -1,94 +1,83 @@
 /**
  * ==============================================================================
- * SHAREBITE - FOOD DONATION SERVICE
+ * SHAREBITE - FOOD DONATION DATABASE & SMART FEATURES SERVICE
  * ==============================================================================
- * Integration & Smart Features (Member 4)
- * 
- * Manages food listings and integrates real-time pickup deadline warnings,
- * urgency ranking, and status transitions.
+ * Integration:
+ * - Member 2 (Samarth): Persistent CRUD operations in Firestore 'food_donations' collection,
+ *   filtering, audit logging, and lifecycle state management.
+ * - Member 4: Real-time pickup deadline warnings, urgency ranking, and smart expiry filtering.
  * ==============================================================================
  */
 
+import { db } from '../config/firebase.js';
 import { FOOD_STATUS, FOOD_CATEGORY } from '../config/constants.js';
+import { ApiError } from '../utils/ApiError.js';
 import { enrichDonationWithDeadlineWarning, evaluateDeadlineUrgency, URGENCY_TIERS } from '../utils/deadlineUtils.js';
-
-// Realistic sample listings covering the urgency spectrum
-const mockDonations = [
-  {
-    foodId: 'food_001',
-    foodName: 'Fresh Vegetable Curry & Steamed Rice',
-    quantity: '25 portions',
-    category: FOOD_CATEGORY.COOKED_MEALS,
-    donorId: 'donor_cafe_central',
-    location: {
-      address: '100 University Ave, Community Kitchen',
-      city: 'Metro City',
-      latitude: 12.9716,
-      longitude: 77.5946
-    },
-    preparedTime: new Date(Date.now() - 3600 * 1000 * 3).toISOString(),
-    // 1.5 hours remaining -> CRITICAL urgency
-    pickupDeadline: new Date(Date.now() + 3600 * 1000 * 1.5).toISOString(),
-    status: FOOD_STATUS.AVAILABLE,
-    allergens: ['Dairy']
-  },
-  {
-    foodId: 'food_002',
-    foodName: 'Artisan Sourdough Loaves & Croissants',
-    quantity: '15 packs',
-    category: FOOD_CATEGORY.BAKERY,
-    donorId: 'donor_bakery_bliss',
-    location: {
-      address: '42 Baker Street',
-      city: 'Metro City',
-      latitude: 12.9789,
-      longitude: 77.6012
-    },
-    preparedTime: new Date(Date.now() - 3600 * 1000 * 4).toISOString(),
-    // 4 hours remaining -> EXPIRING_SOON warning
-    pickupDeadline: new Date(Date.now() + 3600 * 1000 * 4).toISOString(),
-    status: FOOD_STATUS.AVAILABLE,
-    allergens: ['Wheat', 'Gluten']
-  },
-  {
-    foodId: 'food_003',
-    foodName: 'Farm Fresh Organic Spinach & Carrots',
-    quantity: '20 kg',
-    category: FOOD_CATEGORY.PRODUCE,
-    donorId: 'donor_green_grocer',
-    location: {
-      address: '77 Farmers Market Rd',
-      city: 'Metro City',
-      latitude: 12.9650,
-      longitude: 77.5890
-    },
-    preparedTime: new Date(Date.now() - 3600 * 1000 * 1).toISOString(),
-    // 14 hours remaining -> SAFE window
-    pickupDeadline: new Date(Date.now() + 3600 * 1000 * 14).toISOString(),
-    status: FOOD_STATUS.AVAILABLE,
-    allergens: ['None']
-  }
-];
 
 export const donationService = {
   /**
-   * Retrieve all food donations with optional filtering and live deadline warnings
+   * Retrieve all food donations from database with optional filters and live deadline analysis
    * @param {Object} filters
    * @param {string} [filters.category]
    * @param {string} [filters.status]
    * @param {string} [filters.city]
+   * @param {string} [filters.donorId]
    * @param {string} [filters.urgency]
    * @returns {Promise<Array>} List of food donations with deadline analysis
    */
   async getAllDonations(filters = {}) {
-    const enriched = mockDonations.map(enrichDonationWithDeadlineWarning);
+    const snapshot = await db.collection('food_donations').get();
+    let donations = snapshot.docs.map((d) => d.data());
 
-    return enriched.filter((d) => {
-      if (filters.status && d.status !== filters.status) return false;
-      if (filters.category && d.category !== filters.category) return false;
-      if (filters.urgency && d.urgencyTier !== filters.urgency) return false;
-      return true;
-    });
+    const now = new Date();
+
+    // Check expiration and apply in database if passed
+    for (const d of donations) {
+      if (d.status === FOOD_STATUS.AVAILABLE && d.pickupDeadline) {
+        if (new Date(d.pickupDeadline) < now) {
+          d.status = FOOD_STATUS.EXPIRED;
+          d.updatedAt = new Date().toISOString();
+          try {
+            await db.collection('food_donations').doc(d.foodId).update({
+              status: FOOD_STATUS.EXPIRED,
+              updatedAt: d.updatedAt
+            });
+          } catch (e) {
+            // Non-critical background update
+          }
+        }
+      }
+    }
+
+    // Apply filtering
+    if (filters.status) {
+      donations = donations.filter((d) => d.status.toUpperCase() === filters.status.toUpperCase());
+    }
+    if (filters.category) {
+      donations = donations.filter(
+        (d) => d.category.toLowerCase() === filters.category.toLowerCase()
+      );
+    }
+    if (filters.city) {
+      donations = donations.filter((d) =>
+        d.location?.city?.toLowerCase().includes(filters.city.toLowerCase())
+      );
+    }
+    if (filters.donorId) {
+      donations = donations.filter((d) => d.donorId === filters.donorId);
+    }
+
+    // Enrich with deadline analysis
+    let enriched = donations.map(enrichDonationWithDeadlineWarning);
+
+    if (filters.urgency) {
+      enriched = enriched.filter((d) => d.urgencyTier === filters.urgency);
+    }
+
+    // Sort descending by creation date
+    enriched.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+    return enriched;
   },
 
   /**
@@ -97,14 +86,16 @@ export const donationService = {
    * @returns {Promise<Object|null>}
    */
   async getDonationById(foodId) {
-    const found = mockDonations.find((d) => d.foodId === foodId);
-    if (!found) return null;
-    return enrichDonationWithDeadlineWarning(found);
+    if (!foodId) return null;
+    const doc = await db.collection('food_donations').doc(foodId).get();
+    if (!doc.exists) {
+      return null;
+    }
+    return enrichDonationWithDeadlineWarning(doc.data());
   },
 
   /**
    * Get all donations that are expiring soon within specified hours
-   * 
    * @param {number} [maxHours=5] Expiration threshold in hours
    * @returns {Promise<Array>} Expiring food listings sorted by urgency
    */
@@ -128,65 +119,165 @@ export const donationService = {
   },
 
   /**
-   * Create a new food donation listing
+   * Create and persist a new food donation listing in the database
    * @param {Object} donationData
-   * @returns {Promise<Object>} Created food donation document
+   * @returns {Promise<Object>} Created donation document
    */
   async createDonation(donationData) {
+    // Validate deadline > prepared time
+    if (donationData.preparedTime && donationData.pickupDeadline) {
+      const prep = new Date(donationData.preparedTime).getTime();
+      const dead = new Date(donationData.pickupDeadline).getTime();
+      if (dead <= prep) {
+        throw ApiError.badRequest('Pickup deadline must be after prepared time');
+      }
+    }
+
+    const foodId = donationData.foodId || `food_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+    // Try resolving donor name from users collection if not passed
+    let donorName = donationData.donorName;
+    if (!donorName && donationData.donorId) {
+      try {
+        const userDoc = await db.collection('users').doc(donationData.donorId).get();
+        if (userDoc.exists) {
+          donorName = userDoc.data().name;
+        }
+      } catch (e) {
+        // Fallback default
+      }
+    }
+
     const newDonation = {
-      foodId: `food_${Date.now()}`,
-      foodName: donationData.foodName,
+      foodId,
+      foodName: donationData.foodName.trim(),
       quantity: donationData.quantity,
       category: donationData.category,
       donorId: donationData.donorId,
-      location: donationData.location,
+      donorName: donorName || 'Community Food Donor',
+      location: {
+        address: donationData.location.address.trim(),
+        city: donationData.location.city.trim(),
+        latitude: donationData.location.latitude ?? 12.9716,
+        longitude: donationData.location.longitude ?? 77.5946
+      },
       preparedTime: donationData.preparedTime,
       pickupDeadline: donationData.pickupDeadline,
       status: donationData.status || FOOD_STATUS.AVAILABLE,
-      allergens: donationData.allergens || ['None'],
-      createdAt: new Date().toISOString()
+      allergens: Array.isArray(donationData.allergens) && donationData.allergens.length > 0 ? donationData.allergens : ['None'],
+      storageInstructions: donationData.storageInstructions || 'Store in clean food containers',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
-    mockDonations.push(newDonation);
+    // Save to Firestore
+    await db.collection('food_donations').doc(foodId).set(newDonation);
+
+    // Write audit trail
+    try {
+      const logId = `log_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`;
+      await db.collection('audit_logs').doc(logId).set({
+        logId,
+        action: 'DONATION_CREATED',
+        performedBy: newDonation.donorId,
+        targetEntityId: foodId,
+        metadata: { foodName: newDonation.foodName, quantity: newDonation.quantity },
+        timestamp: new Date().toISOString()
+      });
+    } catch (e) {
+      // Audit log non-blocking
+    }
+
     return enrichDonationWithDeadlineWarning(newDonation);
   },
 
   /**
-   * Update an existing food donation listing
+   * Update an existing food donation in the database
    * @param {string} foodId
    * @param {Object} updateData
-   * @returns {Promise<Object>} Updated food donation document
+   * @returns {Promise<Object>}
    */
   async updateDonation(foodId, updateData) {
-    const donation = await this.getDonationById(foodId);
+    const existing = await this.getDonationById(foodId);
+    if (!existing) {
+      throw ApiError.notFound(`Food donation with ID '${foodId}' not found`);
+    }
+
     const updated = {
-      ...(donation || { foodId }),
+      ...existing,
       ...updateData,
       updatedAt: new Date().toISOString()
     };
+
+    // Remove computed deadline fields before storing back to Firestore
+    const toStore = { ...updated };
+    delete toStore.deadlineAnalysis;
+    delete toStore.urgencyTier;
+    delete toStore.warningMessage;
+
+    await db.collection('food_donations').doc(foodId).set(toStore, { merge: true });
+
     return enrichDonationWithDeadlineWarning(updated);
   },
 
   /**
-   * Update status of a donation
+   * Update donation status in the database
    * @param {string} foodId
    * @param {string} status
    * @returns {Promise<Object>}
    */
   async updateDonationStatus(foodId, status) {
-    return {
-      foodId,
+    const existing = await this.getDonationById(foodId);
+    if (!existing) {
+      throw ApiError.notFound(`Food donation with ID '${foodId}' not found`);
+    }
+
+    if (!Object.values(FOOD_STATUS).includes(status)) {
+      throw ApiError.badRequest(`Invalid status '${status}'. Must be one of: ${Object.values(FOOD_STATUS).join(', ')}`);
+    }
+
+    const updatedAt = new Date().toISOString();
+    await db.collection('food_donations').doc(foodId).update({
       status,
-      updatedAt: new Date().toISOString()
+      updatedAt
+    });
+
+    const updated = {
+      ...existing,
+      status,
+      updatedAt
     };
+
+    return enrichDonationWithDeadlineWarning(updated);
   },
 
   /**
-   * Soft-delete or cancel a food donation
+   * Delete or remove food donation from the database
    * @param {string} foodId
    * @returns {Promise<boolean>}
    */
   async deleteDonation(foodId) {
+    const existing = await this.getDonationById(foodId);
+    if (!existing) {
+      throw ApiError.notFound(`Food donation with ID '${foodId}' not found`);
+    }
+
+    await db.collection('food_donations').doc(foodId).delete();
+
+    // Write audit log
+    try {
+      const logId = `log_${Date.now()}`;
+      await db.collection('audit_logs').doc(logId).set({
+        logId,
+        action: 'DONATION_DELETED',
+        performedBy: existing.donorId,
+        targetEntityId: foodId,
+        timestamp: new Date().toISOString()
+      });
+    } catch (e) {
+      // Non-blocking
+    }
+
     return true;
   }
 };

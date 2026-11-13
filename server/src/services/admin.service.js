@@ -1,88 +1,74 @@
 /**
  * ==============================================================================
- * SHAREBITE - ADMIN SERVICE STUB
+ * SHAREBITE - ADMIN SERVICE (DATABASE INTEGRATED)
  * ==============================================================================
- * RESPONSIBLE TEAMMATE: Teammate 3 (Food Donation, Requests & Admin Functionality)
- * 
- * INSTRUCTIONS FOR TEAMMATE 3:
- * 1. Admin operations require USER_ROLE.ADMIN authorization.
- * 2. Implement administrative user management and moderation logs.
- * 3. Audit trail collection name: 'audit_logs'
+ * Responsible: Backend & Database (Samarth)
+ * Handles user management and audit trails in Firestore.
  * ==============================================================================
  */
 
+import { db } from '../config/firebase.js';
 import { USER_ROLE } from '../config/constants.js';
+import { ApiError } from '../utils/ApiError.js';
 
 export const adminService = {
   /**
-   * List all registered users across the platform
+   * List all registered users from Firestore 'users' collection
    * @param {Object} queryParams
    * @returns {Promise<Array>}
    */
   async getAllUsers(queryParams = {}) {
-    // TODO: Teammate 3 - Query Firestore 'users' collection
-    return [
-      {
-        userId: 'usr_001',
-        name: 'Metro City Food Bank',
-        email: 'contact@metrofoodbank.org',
-        role: USER_ROLE.DONOR,
-        createdAt: '2026-11-01T08:00:00Z'
-      },
-      {
-        userId: 'usr_002',
-        name: 'Hope Community Shelter',
-        email: 'info@hopeshelter.org',
-        role: USER_ROLE.RECEIVER,
-        createdAt: '2026-11-02T10:30:00Z'
-      },
-      {
-        userId: 'usr_admin',
-        name: 'System Administrator',
-        email: 'admin@sharebite.org',
-        role: USER_ROLE.ADMIN,
-        createdAt: '2026-10-15T00:00:00Z'
-      }
-    ];
+    const snapshot = await db.collection('users').get();
+    let users = snapshot.docs.map((d) => d.data());
+
+    if (queryParams.role) {
+      users = users.filter((u) => u.role.toUpperCase() === queryParams.role.toUpperCase());
+    }
+
+    return users;
   },
 
   /**
-   * Update a user's role (e.g. promote to VOLUNTEER or ADMIN)
+   * Update a user's role in the database
    * @param {string} userId
    * @param {string} role
    * @returns {Promise<Object>}
    */
   async updateUserRole(userId, role) {
-    // TODO: Teammate 3 - Call db.collection('users').doc(userId).update({ role })
-    return {
-      userId,
+    if (!Object.values(USER_ROLE).includes(role)) {
+      throw ApiError.badRequest(`Invalid role '${role}'. Must be one of: ${Object.values(USER_ROLE).join(', ')}`);
+    }
+
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+      throw ApiError.notFound(`User with ID '${userId}' not found`);
+    }
+
+    const updatedAt = new Date().toISOString();
+    await db.collection('users').doc(userId).update({
       role,
-      updatedAt: new Date().toISOString()
+      updatedAt
+    });
+
+    return {
+      ...userDoc.data(),
+      role,
+      updatedAt
     };
   },
 
   /**
-   * Fetch system audit logs
+   * Fetch system audit logs from Firestore 'audit_logs' collection
    * @returns {Promise<Array>}
    */
   async getAuditLogs() {
-    // TODO: Teammate 3 - Query db.collection('audit_logs').orderBy('timestamp', 'desc').limit(50)
-    return [
-      {
-        logId: 'log_01',
-        action: 'DONATION_CREATED',
-        performedBy: 'usr_001',
-        targetId: 'food_001',
-        timestamp: new Date().toISOString()
-      },
-      {
-        logId: 'log_02',
-        action: 'REQUEST_APPROVED',
-        performedBy: 'usr_001',
-        targetId: 'req_002',
-        timestamp: new Date().toISOString()
-      }
-    ];
+    const snapshot = await db.collection('audit_logs').get();
+    const logs = snapshot.docs.map((d) => d.data());
+
+    // Sort descending by timestamp
+    logs.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+
+    return logs.slice(0, 50);
   }
 };
 

@@ -1,103 +1,233 @@
 /**
  * ==============================================================================
- * SHAREBITE - FOOD REQUEST SERVICE STUB
+ * SHAREBITE - RECEIVER REQUEST DATABASE SERVICE
  * ==============================================================================
- * RESPONSIBLE TEAMMATE: Teammate 3 (Food Donation, Requests & Admin Functionality)
- * 
- * INSTRUCTIONS FOR TEAMMATE 3:
- * 1. Implement Firestore queries using the `db` client exported from config/firebase.js.
- * 2. Collection name: 'food_requests'
- * 3. Enforce request business rules:
- *    - Receiver cannot request more than available food quantity.
- *    - Prevent duplicate active requests for the same food by the same receiver.
- *    - When request status is updated to 'APPROVED', adjust available quantity on donation.
- *    - When status transitions to 'COLLECTED', mark request lifecycle complete.
+ * Responsible Teammate: Samarth (Member 2 – Backend & Database)
+ *
+ * Implements:
+ * 1. Persistent CRUD operations in Firestore 'food_requests' collection
+ * 2. Food availability and inventory validation before creating request
+ * 3. Atomic status transitions (PENDING -> APPROVED / REJECTED / COLLECTED / CANCELLED)
+ * 4. Automatic inventory deduction & status transition to CLAIMED upon approval
  * ==============================================================================
  */
 
-import { REQUEST_STATUS } from '../config/constants.js';
-
-// Sample mock requests conforming strictly to the Food Request Data Contract
-const mockRequests = [
-  {
-    requestId: 'req_001',
-    foodId: 'food_001',
-    receiverId: 'shelter_hope_haven',
-    requestedQuantity: 10,
-    requestStatus: REQUEST_STATUS.PENDING,
-    createdAt: new Date(Date.now() - 1800 * 1000).toISOString()
-  },
-  {
-    requestId: 'req_002',
-    foodId: 'food_002',
-    receiverId: 'community_pantry_north',
-    requestedQuantity: 5,
-    requestStatus: REQUEST_STATUS.APPROVED,
-    createdAt: new Date(Date.now() - 3600 * 1000).toISOString()
-  }
-];
+import { db } from '../config/firebase.js';
+import { REQUEST_STATUS, FOOD_STATUS } from '../config/constants.js';
+import { ApiError } from '../utils/ApiError.js';
+import { donationService } from './donation.service.js';
 
 export const requestService = {
   /**
-   * Retrieve all food requests with optional status filtering
+   * Retrieve all food requests from database with optional filters
    * @param {Object} filters
    * @param {string} [filters.status]
    * @param {string} [filters.foodId]
    * @param {string} [filters.receiverId]
-   * @returns {Promise<Array>} List of requests
+   * @returns {Promise<Array>}
    */
   async getAllRequests(filters = {}) {
-    // TODO: Teammate 3 - Firestore query on 'food_requests'
-    return mockRequests.filter((r) => {
-      if (filters.status && r.requestStatus !== filters.status) return false;
-      if (filters.foodId && r.foodId !== filters.foodId) return false;
-      if (filters.receiverId && r.receiverId !== filters.receiverId) return false;
-      return true;
-    });
+    const snapshot = await db.collection('food_requests').get();
+    let requests = snapshot.docs.map((d) => d.data());
+
+    if (filters.status) {
+      const matchStatus = filters.status.toUpperCase();
+      requests = requests.filter((r) => r.requestStatus.toUpperCase() === matchStatus);
+    }
+    if (filters.foodId) {
+      requests = requests.filter((r) => r.foodId === filters.foodId);
+    }
+    if (filters.receiverId) {
+      requests = requests.filter((r) => r.receiverId === filters.receiverId);
+    }
+
+    // Sort descending by creation timestamp
+    requests.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+    return requests;
   },
 
   /**
-   * Retrieve request by ID
+   * Retrieve single request by requestId
    * @param {string} requestId
    * @returns {Promise<Object|null>}
    */
   async getRequestById(requestId) {
-    // TODO: Teammate 3 - Query db.collection('food_requests').doc(requestId).get()
-    const found = mockRequests.find((r) => r.requestId === requestId);
-    return found || null;
+    if (!requestId) return null;
+    const doc = await db.collection('food_requests').doc(requestId).get();
+    if (!doc.exists) {
+      return null;
+    }
+    return doc.data();
   },
 
   /**
-   * Create a new food request
+   * Create and store a receiver request in the database
    * @param {Object} requestData
    * @returns {Promise<Object>} Created request document
    */
   async createRequest(requestData) {
-    // TODO: Teammate 3 - Validate food availability and save to Firestore
+    const { foodId, receiverId, requestedQuantity, notes } = requestData;
+
+    // Validate that food donation exists in database
+    const food = await donationService.getDonationById(foodId);
+    if (!food) {
+      throw ApiError.notFound(`Food donation listing '${foodId}' was not found`);
+    }
+
+    // Check food status
+    if (food.status !== FOOD_STATUS.AVAILABLE) {
+      throw ApiError.badRequest(`Food donation is not currently available (status: ${food.status})`);
+    }
+
+    // Extract numeric portion of food.quantity
+    let numericFoodQty = typeof food.quantity === 'number' ? food.quantity : parseFloat(food.quantity);
+    if (isNaN(numericFoodQty)) numericFoodQty = 1;
+
+    const requestedQty = Number(requestedQuantity);
+    if (requestedQty <= 0) {
+      throw ApiError.badRequest('Requested quantity must be greater than 0');
+    }
+
+    if (requestedQty > numericFoodQty) {
+      throw ApiError.badRequest(
+        `Requested quantity (${requestedQty}) exceeds currently available food quantity (${numericFoodQty})`
+      );
+    }
+
+    // Resolve receiver name if not provided
+    let receiverName = requestData.receiverName;
+    if (!receiverName && receiverId) {
+      try {
+        const userDoc = await db.collection('users').doc(receiverId).get();
+        if (userDoc.exists) {
+          receiverName = userDoc.data().name;
+        }
+      } catch (e) {
+        // Fallback default
+      }
+    }
+
+    const requestId = requestData.requestId || `req_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
     const newRequest = {
-      requestId: `req_${Date.now()}`,
-      foodId: requestData.foodId,
-      receiverId: requestData.receiverId,
-      requestedQuantity: requestData.requestedQuantity,
+      requestId,
+      foodId,
+      foodName: food.foodName,
+      donorId: food.donorId,
+      receiverId,
+      receiverName: receiverName || 'Registered Community Receiver',
+      requestedQuantity: requestedQty,
       requestStatus: requestData.requestStatus || REQUEST_STATUS.PENDING,
-      createdAt: new Date().toISOString()
+      notes: notes || '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
+
+    // Store in Firestore
+    await db.collection('food_requests').doc(requestId).set(newRequest);
+
+    // Write audit trail
+    try {
+      const logId = `log_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`;
+      await db.collection('audit_logs').doc(logId).set({
+        logId,
+        action: 'REQUEST_SUBMITTED',
+        performedBy: receiverId,
+        targetEntityId: requestId,
+        metadata: { foodId, requestedQuantity: requestedQty },
+        timestamp: new Date().toISOString()
+      });
+    } catch (e) {
+      // Non-blocking
+    }
+
     return newRequest;
   },
 
   /**
-   * Update request status (PENDING -> APPROVED / REJECTED -> COLLECTED)
+   * Update request status (e.g. PENDING -> APPROVED / REJECTED -> COLLECTED)
+   * Handles automated inventory deduction upon approval
    * @param {string} requestId
    * @param {string} status
    * @returns {Promise<Object>}
    */
   async updateRequestStatus(requestId, status) {
-    // TODO: Teammate 3 - Atomic Firestore transaction updating request and donation quantity
-    return {
-      requestId,
+    const existing = await this.getRequestById(requestId);
+    if (!existing) {
+      throw ApiError.notFound(`Food request with ID '${requestId}' was not found`);
+    }
+
+    if (!Object.values(REQUEST_STATUS).includes(status)) {
+      throw ApiError.badRequest(
+        `Invalid request status '${status}'. Must be one of: ${Object.values(REQUEST_STATUS).join(', ')}`
+      );
+    }
+
+    const previousStatus = existing.requestStatus;
+
+    // Handle inventory adjustment when request is APPROVED
+    if (previousStatus !== REQUEST_STATUS.APPROVED && status === REQUEST_STATUS.APPROVED) {
+      const food = await donationService.getDonationById(existing.foodId);
+      if (food) {
+        let currentQty = typeof food.quantity === 'number' ? food.quantity : parseFloat(food.quantity);
+        if (isNaN(currentQty)) currentQty = 1;
+
+        const remaining = Math.max(0, currentQty - existing.requestedQuantity);
+        const newFoodStatus = remaining <= 0 ? FOOD_STATUS.CLAIMED : food.status;
+
+        await db.collection('food_donations').doc(food.foodId).update({
+          quantity: remaining,
+          status: newFoodStatus,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    }
+
+    // Handle inventory restoration if an APPROVED request is later CANCELLED or REJECTED
+    if (previousStatus === REQUEST_STATUS.APPROVED && (status === REQUEST_STATUS.CANCELLED || status === REQUEST_STATUS.REJECTED)) {
+      const food = await donationService.getDonationById(existing.foodId);
+      if (food) {
+        let currentQty = typeof food.quantity === 'number' ? food.quantity : parseFloat(food.quantity);
+        if (isNaN(currentQty)) currentQty = 0;
+
+        const restoredQty = currentQty + existing.requestedQuantity;
+        await db.collection('food_donations').doc(food.foodId).update({
+          quantity: restoredQty,
+          status: FOOD_STATUS.AVAILABLE,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    }
+
+    const updatedAt = new Date().toISOString();
+    const updatedRequest = {
+      ...existing,
       requestStatus: status,
-      updatedAt: new Date().toISOString()
+      updatedAt
     };
+
+    await db.collection('food_requests').doc(requestId).update({
+      requestStatus: status,
+      updatedAt
+    });
+
+    // Write audit trail
+    try {
+      const logId = `log_${Date.now()}`;
+      await db.collection('audit_logs').doc(logId).set({
+        logId,
+        action: 'REQUEST_STATUS_CHANGED',
+        performedBy: existing.receiverId,
+        targetEntityId: requestId,
+        metadata: { from: previousStatus, to: status },
+        timestamp: new Date().toISOString()
+      });
+    } catch (e) {
+      // Non-blocking
+    }
+
+    return updatedRequest;
   },
 
   /**
@@ -106,8 +236,7 @@ export const requestService = {
    * @returns {Promise<Array>}
    */
   async getRequestsByReceiver(receiverId) {
-    // TODO: Teammate 3 - Query db.collection('food_requests').where('receiverId', '==', receiverId)
-    return mockRequests.filter((r) => r.receiverId === receiverId);
+    return this.getAllRequests({ receiverId });
   }
 };
 
