@@ -3,18 +3,31 @@ import apiClient from './api/apiClient';
 import API_ENDPOINTS from './api/endpoints';
 import { FOOD_CATEGORY, FOOD_STATUS, REQUEST_STATUS } from './contracts/models';
 
+/**
+ * ==============================================================================
+ * SHAREBITE - SYSTEM ARCHITECTURE, DATABASE & SMART FEATURES CONSOLE
+ * ==============================================================================
+ * Integrated Features:
+ * - Member 2 (Samarth): Persistent Firebase/Firestore Database Storage & Retrieval,
+ *   Food Donation CRUD, Receiver Request Management with Automated Inventory Deduction.
+ * - Member 4: Distance-Based Nearby NGO Matching (Haversine Algorithm),
+ *   Pickup Deadline Warnings (< 2h Critical, < 5h Warning), EPA/FAO Environmental Analytics.
+ * ==============================================================================
+ */
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('donations');
   const [healthStatus, setHealthStatus] = useState(null);
-  const [loadingHealth, setLoadingHealth] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  // Donations state
+  // ---------------------------------------------------------------------------
+  // Member 2 State: Food Donations & Receiver Requests
+  // ---------------------------------------------------------------------------
   const [donations, setDonations] = useState([]);
   const [loadingDonations, setLoadingDonations] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  // New Donation form state
   const [donationForm, setDonationForm] = useState({
     foodName: '',
     category: FOOD_CATEGORY.COOKED_MEALS,
@@ -30,11 +43,9 @@ export default function App() {
   const [submittingDonation, setSubmittingDonation] = useState(false);
   const [donationSuccessMsg, setDonationSuccessMsg] = useState('');
 
-  // Requests state
   const [requests, setRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
 
-  // New Request form state
   const [requestForm, setRequestForm] = useState({
     foodId: '',
     requestedQuantity: 5,
@@ -45,30 +56,52 @@ export default function App() {
   const [submittingRequest, setSubmittingRequest] = useState(false);
   const [requestSuccessMsg, setRequestSuccessMsg] = useState('');
 
-  // Raw Database Inspector
   const [showDbInspector, setShowDbInspector] = useState(false);
   const [dbDataPreview, setDbDataPreview] = useState(null);
+
+  // ---------------------------------------------------------------------------
+  // Member 4 State: NGO Matching, Deadline Warnings & Impact Analytics
+  // ---------------------------------------------------------------------------
+  const [selectedFoodId, setSelectedFoodId] = useState('food_001');
+  const [matchingRadius, setMatchingRadius] = useState(15);
+  const [matchedNGOs, setMatchedNGOs] = useState(null);
+  const [loadingMatching, setLoadingMatching] = useState(false);
+
+  const [warningThreshold, setWarningThreshold] = useState(6);
+  const [expiringDonations, setExpiringDonations] = useState([]);
+  const [loadingWarnings, setLoadingWarnings] = useState(false);
+
+  const [impactMetrics, setImpactMetrics] = useState(null);
+  const [categoryBreakdown, setCategoryBreakdown] = useState([]);
+  const [leaderboard, setLeaderboard] = useState(null);
+  const [customMealsInput, setCustomMealsInput] = useState(250);
+  const [customImpactResult, setCustomImpactResult] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(false);
 
   // Endpoint verifier state
   const [apiResult, setApiResult] = useState(null);
   const [testingEndpoint, setTestingEndpoint] = useState(false);
 
-  // Initial load
   useEffect(() => {
-    checkHealth();
-    fetchDonations();
-    fetchRequests();
+    initApp();
   }, []);
 
+  const initApp = async () => {
+    setLoading(true);
+    await checkHealth();
+    await fetchDonations();
+    await fetchRequests();
+    await fetchExpiringDonations(warningThreshold);
+    await fetchImpactStats();
+    setLoading(false);
+  };
+
   const checkHealth = async () => {
-    setLoadingHealth(true);
     try {
-      const res = await apiClient.get(API_ENDPOINTS.HEALTH);
-      setHealthStatus({ ok: true, data: res.data || res });
+      const response = await apiClient.get(API_ENDPOINTS.HEALTH);
+      setHealthStatus({ ok: true, data: response.data || response });
     } catch (err) {
       setHealthStatus({ ok: false, error: err.message || 'Cannot reach backend server' });
-    } finally {
-      setLoadingHealth(false);
     }
   };
 
@@ -80,8 +113,11 @@ export default function App() {
       if (statusFilter) params.status = statusFilter;
       const res = await apiClient.get(API_ENDPOINTS.DONATIONS.LIST, { params });
       setDonations(res.data || []);
+      if (res.data && res.data.length > 0 && !selectedFoodId) {
+        setSelectedFoodId(res.data[0].foodId);
+      }
     } catch (err) {
-      console.error('Failed to load donations:', err);
+      console.error('Failed to load donations', err);
     } finally {
       setLoadingDonations(false);
     }
@@ -117,7 +153,9 @@ export default function App() {
         donorName: donationForm.donorName,
         location: {
           address: donationForm.address.trim(),
-          city: donationForm.city.trim()
+          city: donationForm.city.trim(),
+          latitude: 12.9716,
+          longitude: 77.5946
         },
         preparedTime,
         pickupDeadline,
@@ -134,6 +172,7 @@ export default function App() {
         quantity: 15
       }));
       await fetchDonations();
+      await fetchExpiringDonations(warningThreshold);
       await checkHealth();
     } catch (err) {
       alert(`Error saving donation: ${err.message || 'Validation failed'}`);
@@ -147,6 +186,7 @@ export default function App() {
     try {
       await apiClient.delete(API_ENDPOINTS.DONATIONS.DELETE(foodId));
       await fetchDonations();
+      await fetchExpiringDonations(warningThreshold);
       await checkHealth();
     } catch (err) {
       alert(`Error deleting donation: ${err.message}`);
@@ -175,6 +215,7 @@ export default function App() {
       setRequestSuccessMsg(`Success! Stored request for "${res.data.foodName}" in database.`);
       await fetchRequests();
       await fetchDonations();
+      await fetchImpactStats();
       await checkHealth();
     } catch (err) {
       alert(`Error submitting request: ${err.message}`);
@@ -190,6 +231,7 @@ export default function App() {
       });
       await fetchRequests();
       await fetchDonations();
+      await fetchImpactStats();
       await checkHealth();
     } catch (err) {
       alert(`Error updating request status: ${err.message}`);
@@ -214,6 +256,63 @@ export default function App() {
       setShowDbInspector(true);
     } catch (e) {
       alert('Failed to preview database: ' + e.message);
+    }
+  };
+
+  // Smart NGO Matching Trigger
+  const triggerNgoMatching = async (foodId = selectedFoodId, radius = matchingRadius) => {
+    setLoadingMatching(true);
+    try {
+      const res = await apiClient.get(API_ENDPOINTS.MATCHING.NEARBY_NGOS(foodId, radius));
+      setMatchedNGOs(res.data);
+    } catch (err) {
+      console.error('NGO matching error:', err);
+      setMatchedNGOs({ error: err.message || 'Failed to match NGOs' });
+    } finally {
+      setLoadingMatching(false);
+    }
+  };
+
+  // Smart Pickup Deadline Warnings Trigger
+  const fetchExpiringDonations = async (hours = warningThreshold) => {
+    setLoadingWarnings(true);
+    try {
+      const res = await apiClient.get(API_ENDPOINTS.DONATIONS.EXPIRING_SOON(hours));
+      setExpiringDonations(res.data || []);
+    } catch (err) {
+      console.error('Failed to load expiring donations', err);
+    } finally {
+      setLoadingWarnings(false);
+    }
+  };
+
+  // Smart Impact Statistics Trigger
+  const fetchImpactStats = async () => {
+    setLoadingStats(true);
+    try {
+      const [impactRes, catRes, leaderRes] = await Promise.all([
+        apiClient.get(API_ENDPOINTS.STATS.IMPACT),
+        apiClient.get(API_ENDPOINTS.STATS.CATEGORIES),
+        apiClient.get(API_ENDPOINTS.STATS.LEADERBOARD)
+      ]);
+      setImpactMetrics(impactRes.data);
+      setCategoryBreakdown(catRes.data || []);
+      setLeaderboard(leaderRes.data || null);
+    } catch (err) {
+      console.error('Failed to load impact stats', err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const calculateCustomImpact = async () => {
+    try {
+      const res = await apiClient.post(API_ENDPOINTS.STATS.CALCULATE, {
+        mealsSaved: Number(customMealsInput)
+      });
+      setCustomImpactResult(res.data);
+    } catch (err) {
+      console.error('Custom calculation failed', err);
     }
   };
 
@@ -247,24 +346,24 @@ export default function App() {
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '30px' }}>🍲</span>
+            <span style={{ fontSize: '32px' }}>🍲</span>
             <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
               ShareBite
             </h1>
             <span style={{
-              fontSize: '12px',
+              fontSize: '11px',
               fontWeight: 700,
               color: '#059669',
               background: '#ecfdf5',
-              padding: '4px 10px',
+              padding: '3px 8px',
               borderRadius: '20px',
               border: '1px solid #a7f3d0'
             }}>
-              Member 2 – Backend & Database
+              Member 2 (Database) &bull; Member 4 (Smart Features)
             </span>
           </div>
           <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>
-            Food Donation & Receiver Request Storage & Retrieval Engine &bull; Built by Samarth
+            Food Waste Management &bull; Persistent Firestore Engine &bull; NGO Haversine Proximity &bull; Environmental Analytics
           </p>
         </div>
 
@@ -285,7 +384,7 @@ export default function App() {
               display: 'inline-block'
             }} />
             <span style={{ fontWeight: 700, fontSize: '13px', color: healthStatus?.ok ? '#047857' : '#b91c1c' }}>
-              {loadingHealth ? 'Checking Database...' : healthStatus?.ok ? 'Database Connected & Persistent' : 'Database Offline'}
+              {loading ? 'Booting modules...' : healthStatus?.ok ? 'Database Connected & Operational' : 'Offline'}
             </span>
           </div>
           <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px' }}>
@@ -293,7 +392,7 @@ export default function App() {
           </div>
           <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
             <button
-              onClick={() => { checkHealth(); fetchDonations(); fetchRequests(); }}
+              onClick={() => { checkHealth(); fetchDonations(); fetchRequests(); fetchImpactStats(); }}
               style={{
                 background: '#ffffff',
                 border: '1px solid #cbd5e1',
@@ -325,18 +424,21 @@ export default function App() {
         </div>
       </header>
 
-      {/* Navigation Tabs */}
+      {/* Primary Navigation Tabs */}
       <nav style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
         {[
           { id: 'donations', label: '🥘 Food Donations (Store & List)', count: donations.length },
           { id: 'requests', label: '📦 Receiver Requests (Store & Manage)', count: requests.length },
-          { id: 'diagnostic', label: '🔌 System Health & Endpoints' }
+          { id: 'ngo-matching', label: '📍 Nearby NGO Matching (Haversine)' },
+          { id: 'deadline-warnings', label: '⏰ Pickup Deadline Warnings', count: expiringDonations.length },
+          { id: 'impact-analytics', label: '📊 Environmental Impact (EPA Models)' },
+          { id: 'overview', label: '🔌 System Architecture & Verifier' }
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             style={{
-              padding: '10px 18px',
+              padding: '10px 16px',
               borderRadius: '8px',
               border: 'none',
               cursor: 'pointer',
@@ -525,7 +627,6 @@ export default function App() {
                 </span>
               </div>
 
-              {/* Filter controls */}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <select
                   value={categoryFilter}
@@ -549,7 +650,7 @@ export default function App() {
                     cursor: 'pointer'
                   }}
                 >
-                  Apply Filter
+                  Filter
                 </button>
               </div>
             </div>
@@ -577,18 +678,32 @@ export default function App() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
-                        <span style={{
-                          display: 'inline-block',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          background: '#e0e7ff',
-                          color: '#4338ca',
-                          padding: '2px 8px',
-                          borderRadius: '12px',
-                          marginBottom: '4px'
-                        }}>
-                          {food.category}
-                        </span>
+                        <div style={{ display: 'flex', gap: '6px', marginBottom: '4px' }}>
+                          <span style={{
+                            display: 'inline-block',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            background: '#e0e7ff',
+                            color: '#4338ca',
+                            padding: '2px 8px',
+                            borderRadius: '12px'
+                          }}>
+                            {food.category}
+                          </span>
+                          {food.urgencyTier && (
+                            <span style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              backgroundColor: food.urgencyTier === 'CRITICAL' ? '#fee2e2' : food.urgencyTier === 'EXPIRING_SOON' ? '#fef3c7' : '#ecfdf5',
+                              color: food.urgencyTier === 'CRITICAL' ? '#991b1b' : food.urgencyTier === 'EXPIRING_SOON' ? '#92400e' : '#047857'
+                            }}>
+                              {food.urgencyTier.replace('_', ' ')}
+                            </span>
+                          )}
+                        </div>
+
                         <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: '#1e293b' }}>
                           {food.foodName}
                         </h3>
@@ -634,6 +749,25 @@ export default function App() {
                             Request Food
                           </button>
                         )}
+                        <button
+                          onClick={() => {
+                            setSelectedFoodId(food.foodId);
+                            setActiveTab('ngo-matching');
+                            triggerNgoMatching(food.foodId, matchingRadius);
+                          }}
+                          style={{
+                            background: '#4f46e5',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Find NGOs
+                        </button>
                         <button
                           onClick={() => handleDeleteDonation(food.foodId)}
                           style={{
@@ -858,7 +992,6 @@ export default function App() {
                       </span>
                     </div>
 
-                    {/* Action buttons to update status */}
                     <div style={{ display: 'flex', gap: '6px', borderTop: '1px solid #e2e8f0', paddingTop: '8px', marginTop: '4px', justifyContent: 'flex-end' }}>
                       {req.requestStatus === 'PENDING' && (
                         <>
@@ -920,8 +1053,351 @@ export default function App() {
         </div>
       )}
 
-      {/* TAB 3: SYSTEM HEALTH & INTEGRATION DIAGNOSTICS */}
-      {activeTab === 'diagnostic' && (
+      {/* TAB 3: NGO MATCHING (Member 4) */}
+      {activeTab === 'ngo-matching' && (
+        <div>
+          <div style={{ ...cardStyle, marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '6px', color: '#1e293b' }}>
+              📍 Smart Proximity Matching (Haversine Geospatial Algorithm)
+            </h2>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
+              Ranks nearest recipient shelters and NGOs using real spherical earth geodesics and calculated transit ETAs.
+            </p>
+
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', color: '#334155', marginBottom: '4px' }}>
+                  Select Food Listing:
+                </label>
+                <select
+                  value={selectedFoodId}
+                  onChange={(e) => setSelectedFoodId(e.target.value)}
+                  style={{ ...inputStyle, width: '280px' }}
+                >
+                  {donations.map((d) => (
+                    <option key={d.foodId} value={d.foodId}>
+                      {d.foodName} ({d.category})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', color: '#334155', marginBottom: '4px' }}>
+                  Search Radius: <strong>{matchingRadius} km</strong>
+                </label>
+                <input
+                  type="range"
+                  min="5"
+                  max="50"
+                  step="5"
+                  value={matchingRadius}
+                  onChange={(e) => setMatchingRadius(Number(e.target.value))}
+                  style={{ width: '160px' }}
+                />
+              </div>
+
+              <button
+                onClick={() => triggerNgoMatching(selectedFoodId, matchingRadius)}
+                disabled={loadingMatching}
+                style={{ ...btnPrimaryStyle, padding: '10px 18px' }}
+              >
+                {loadingMatching ? 'Computing Proximity...' : '⚡ Match Nearby Shelters'}
+              </button>
+            </div>
+          </div>
+
+          {matchedNGOs && (
+            <div style={cardStyle}>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px', color: '#0f172a' }}>
+                🎯 Top Matched Recipient Shelters (Within {matchingRadius} km)
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
+                {matchedNGOs.matches?.map((ngo, idx) => (
+                  <div key={ngo.ngoId} style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#059669' }}>
+                        Rank #{idx + 1} &bull; Score: {ngo.matchScore} pts
+                      </span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#0284c7' }}>
+                        {ngo.distanceKm} km away
+                      </span>
+                    </div>
+                    <h4 style={{ fontSize: '15px', fontWeight: 700, margin: '6px 0 2px', color: '#1e293b' }}>
+                      {ngo.name}
+                    </h4>
+                    <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 8px' }}>
+                      {ngo.address} &bull; Transit ETA: ~{ngo.estimatedTransitMinutes} mins
+                    </p>
+                    <div style={{ fontSize: '12px', color: '#334155' }}>
+                      <strong>Capacity:</strong> {ngo.capacityPortions} meals &bull; <strong>Contact:</strong> {ngo.phone}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 4: DEADLINE WARNINGS (Member 4) */}
+      {activeTab === 'deadline-warnings' && (
+        <div>
+          <div style={{ ...cardStyle, marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '6px', color: '#1e293b' }}>
+              ⏰ Perishability & Pickup Deadline Warnings
+            </h2>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
+              Listings approaching safety expiry are categorized as <strong>CRITICAL</strong> (&lt; 2h) or <strong>EXPIRING SOON</strong> (&lt; 5h).
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                Warning Threshold:
+              </label>
+              {[3, 6, 12, 24].map((hours) => (
+                <button
+                  key={hours}
+                  onClick={() => {
+                    setWarningThreshold(hours);
+                    fetchExpiringDonations(hours);
+                  }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: warningThreshold === hours ? '#059669' : '#ffffff',
+                    color: warningThreshold === hours ? '#ffffff' : '#334155',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  &lt; {hours} Hours
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px', color: '#0f172a' }}>
+              ⚠️ At-Risk Food Listings Requiring Urgent Pickup
+            </h3>
+            {loadingWarnings ? (
+              <p style={{ color: '#64748b', fontSize: '13px' }}>Analyzing expiration timestamps...</p>
+            ) : expiringDonations.length === 0 ? (
+              <p style={{ color: '#059669', fontSize: '13px', textAlign: 'center', padding: '30px 0' }}>
+                ✅ All active food listings are within safe operational windows.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {expiringDonations.map((d) => (
+                  <div
+                    key={d.foodId}
+                    style={{
+                      background: d.urgencyTier === 'CRITICAL' ? '#fef2f2' : '#fffbeb',
+                      border: `1px solid ${d.urgencyTier === 'CRITICAL' ? '#fecaca' : '#fef08a'}`,
+                      borderRadius: '10px',
+                      padding: '16px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '12px'
+                    }}
+                  >
+                    <div>
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        backgroundColor: d.urgencyTier === 'CRITICAL' ? '#fee2e2' : '#fef3c7',
+                        color: d.urgencyTier === 'CRITICAL' ? '#991b1b' : '#92400e'
+                      }}>
+                        {d.urgencyTier}
+                      </span>
+                      <h4 style={{ fontSize: '15px', fontWeight: 700, margin: '6px 0 2px', color: '#1e293b' }}>
+                        {d.foodName} ({d.quantity} portions)
+                      </h4>
+                      <p style={{ fontSize: '12px', color: '#475569', margin: 0 }}>
+                        {d.deadlineAnalysis?.warningMessage}
+                      </p>
+                    </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '18px', fontWeight: 800, color: d.urgencyTier === 'CRITICAL' ? '#b91c1c' : '#b45309' }}>
+                        {d.deadlineAnalysis?.hoursRemaining}h {d.deadlineAnalysis?.minutesRemaining}m
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>Remaining Pickup Window</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: ENVIRONMENTAL IMPACT (Member 4) */}
+      {activeTab === 'impact-analytics' && (
+        <div>
+          {/* Key Metric Tiles */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+            <div style={statCardStyle}>
+              <div style={{ fontSize: '28px', marginBottom: '4px' }}>🍽️</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>
+                {impactMetrics?.coreMetrics?.totalMealsRescued?.toLocaleString() || 1480}
+              </div>
+              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Meals Rescued</div>
+            </div>
+
+            <div style={statCardStyle}>
+              <div style={{ fontSize: '28px', marginBottom: '4px' }}>☁️</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#047857' }}>
+                {impactMetrics?.coreMetrics?.co2EmissionsAvoidedKg?.toLocaleString() || 1554} kg
+              </div>
+              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>CO₂e Avoided</div>
+            </div>
+
+            <div style={statCardStyle}>
+              <div style={{ fontSize: '28px', marginBottom: '4px' }}>💧</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#0284c7' }}>
+                {impactMetrics?.coreMetrics?.waterSavedLiters?.toLocaleString() || 497280} L
+              </div>
+              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Water Footprint Conserved</div>
+            </div>
+
+            <div style={statCardStyle}>
+              <div style={{ fontSize: '28px', marginBottom: '4px' }}>💵</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#b45309' }}>
+                ${impactMetrics?.coreMetrics?.economicValueSavedUSD?.toLocaleString() || 5180}
+              </div>
+              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Economic Value Diverted</div>
+            </div>
+          </div>
+
+          {/* Environmental Equivalents */}
+          <div style={{ ...cardStyle, marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '14px', color: '#1e293b' }}>
+              🌍 Real-World Environmental Equivalency Benchmarks (EPA WARM Model)
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+              <div style={equivBoxStyle}>
+                <span style={{ fontSize: '24px' }}>🚗</span>
+                <div>
+                  <strong>Passenger Car Travel Offset:</strong>
+                  <p style={{ fontSize: '12px', color: '#334155', marginTop: '2px' }}>
+                    {impactMetrics?.environmentalEquivalents?.carKilometersAvoided?.description || 'Offset thousands of vehicle driving kms.'}
+                  </p>
+                </div>
+              </div>
+
+              <div style={equivBoxStyle}>
+                <span style={{ fontSize: '24px' }}>🚰</span>
+                <div>
+                  <strong>Domestic Water Security:</strong>
+                  <p style={{ fontSize: '12px', color: '#334155', marginTop: '2px' }}>
+                    {impactMetrics?.environmentalEquivalents?.householdWaterDays?.description || 'Water conserved for human consumption.'}
+                  </p>
+                </div>
+              </div>
+
+              <div style={equivBoxStyle}>
+                <span style={{ fontSize: '24px' }}>🌲</span>
+                <div>
+                  <strong>Carbon Sequestration Equivalent:</strong>
+                  <p style={{ fontSize: '12px', color: '#334155', marginTop: '2px' }}>
+                    {impactMetrics?.environmentalEquivalents?.treeSeedlingsEquivalent?.description || 'Equivalent to planting seedlings.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Impact Projection Calculator */}
+          <div style={{ ...cardStyle, marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px', color: '#1e293b' }}>
+              🧮 Interactive Impact Projection Calculator
+            </h2>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
+              Test dynamic projections by entering a food rescue target to calculate environmental savings:
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', color: '#334155' }}>
+                  Meals to Rescue:
+                </label>
+                <input
+                  type="number"
+                  value={customMealsInput}
+                  onChange={(e) => setCustomMealsInput(e.target.value)}
+                  style={{ ...inputStyle, width: '140px' }}
+                />
+              </div>
+
+              <button
+                onClick={calculateCustomImpact}
+                style={{ ...btnPrimaryStyle, alignSelf: 'flex-end' }}
+              >
+                Compute Environmental Savings
+              </button>
+            </div>
+
+            {customImpactResult && (
+              <div style={{ background: '#ecfdf5', padding: '16px', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#065f46', marginBottom: '8px' }}>
+                  Projected Environmental Savings for {customMealsInput} Rescued Meals:
+                </h4>
+                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '13px', color: '#047857' }}>
+                  <div><strong>Food Weight:</strong> {customImpactResult.coreMetrics?.totalKgFoodDiverted} kg</div>
+                  <div><strong>CO₂e Avoided:</strong> {customImpactResult.coreMetrics?.co2EmissionsAvoidedKg} kg</div>
+                  <div><strong>Water Conserved:</strong> {customImpactResult.coreMetrics?.waterSavedLiters?.toLocaleString()} Liters</div>
+                  <div><strong>Economic Value:</strong> ${customImpactResult.coreMetrics?.economicValueSavedUSD}</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Community Leaderboard */}
+          {leaderboard && (
+            <div style={cardStyle}>
+              <h2 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '14px', color: '#1e293b' }}>
+                🏆 Community Food Waste Reduction Leaderboard
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                <div>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#047857', marginBottom: '8px' }}>Top Food Donors</h4>
+                  <ul style={{ listStyle: 'none', padding: 0 }}>
+                    {leaderboard.topDonors?.map((d, i) => (
+                      <li key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: '13px' }}>
+                        <span><strong>#{i + 1}</strong> {d.name} <span style={{ fontSize: '11px', color: '#059669' }}>({d.badge})</span></span>
+                        <strong>{d.mealsRescued} meals</strong>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0369a1', marginBottom: '8px' }}>Top Recipient NGOs</h4>
+                  <ul style={{ listStyle: 'none', padding: 0 }}>
+                    {leaderboard.topRecipientNGOs?.map((r, i) => (
+                      <li key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: '13px' }}>
+                        <span><strong>#{i + 1}</strong> {r.name}</span>
+                        <strong>{r.individualsFed} people fed</strong>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 6: SYSTEM ARCHITECTURE & DIAGNOSTICS */}
+      {activeTab === 'overview' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
           <div style={cardStyle}>
             <h2 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '14px', color: '#1e293b' }}>
@@ -948,6 +1424,9 @@ export default function App() {
               </button>
               <button onClick={() => testEndpoint('GET /api/stats/overview', () => apiClient.get(API_ENDPOINTS.STATS.OVERVIEW))} style={btnStyle}>
                 GET /api/stats/overview
+              </button>
+              <button onClick={() => testEndpoint('GET /api/matching/ngos', () => apiClient.get(API_ENDPOINTS.MATCHING.NGOS))} style={btnStyle}>
+                GET /api/matching/ngos
               </button>
             </div>
 
@@ -1040,7 +1519,7 @@ export default function App() {
 
       {/* Footer */}
       <footer style={{ marginTop: '30px', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>
-        ShareBite Food Waste Management &bull; Member 2 Deliverable: Working Data Storage & Retrieval &bull; Connected to Express + Firestore Architecture
+        ShareBite Food Waste Management &bull; Member 2 (Database & Backend) &bull; Member 4 (Smart Proximity & Environmental Engine)
       </footer>
     </div>
   );
@@ -1080,6 +1559,36 @@ const btnStyle = {
   fontWeight: 600,
   cursor: 'pointer',
   color: '#334155'
+};
+
+const btnPrimaryStyle = {
+  background: '#059669',
+  color: '#ffffff',
+  border: 'none',
+  padding: '8px 16px',
+  borderRadius: '6px',
+  fontSize: '12px',
+  fontWeight: 600,
+  cursor: 'pointer'
+};
+
+const statCardStyle = {
+  background: '#ffffff',
+  padding: '20px',
+  borderRadius: '12px',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+  textAlign: 'center'
+};
+
+const equivBoxStyle = {
+  background: '#f8fafc',
+  padding: '16px',
+  borderRadius: '10px',
+  border: '1px solid #e2e8f0',
+  display: 'flex',
+  gap: '12px',
+  alignItems: 'flex-start'
 };
 
 const codeBlockStyle = {

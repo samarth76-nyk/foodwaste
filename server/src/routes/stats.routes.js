@@ -5,7 +5,8 @@ const router = Router();
 
 /**
  * ==============================================================================
- * STATISTICS & ANALYTICS ROUTES (TEAMMATE 3 INTEGRATION POINT)
+ * IMPACT STATISTICS & ANALYTICS ROUTES
+ * Member 4 - Smart Features & Integration
  * ==============================================================================
  */
 
@@ -18,7 +19,7 @@ router.get('/overview', statsController.getOverviewStats);
 
 /**
  * @route   GET /api/stats/impact
- * @desc    Environmental impact metrics (CO2 avoided, food waste diverted)
+ * @desc    Comprehensive environmental impact metrics (CO2, water, landfill methane)
  * @access  Public
  */
 router.get('/impact', statsController.getImpactMetrics);
@@ -29,5 +30,19 @@ router.get('/impact', statsController.getImpactMetrics);
  * @access  Public
  */
 router.get('/categories', statsController.getCategoryBreakdown);
+
+/**
+ * @route   GET /api/stats/leaderboard
+ * @desc    Top food donors and recipient shelters impact ranking
+ * @access  Public
+ */
+router.get('/leaderboard', statsController.getLeaderboard);
+
+/**
+ * @route   POST /api/stats/calculate
+ * @desc    Interactive impact calculator for custom meal / food quantities
+ * @access  Public
+ */
+router.post('/calculate', statsController.calculateCustomImpact);
 
 export default router;

@@ -1,30 +1,29 @@
 /**
  * ==============================================================================
- * SHAREBITE - FOOD DONATION DATABASE SERVICE
+ * SHAREBITE - FOOD DONATION DATABASE & SMART FEATURES SERVICE
  * ==============================================================================
- * Responsible Teammate: Samarth (Member 2 – Backend & Database)
- *
- * Implements:
- * 1. Persistent CRUD operations in Firestore 'food_donations' collection
- * 2. Food availability query filtering (category, status, city, donorId)
- * 3. Automatic expiry evaluation based on pickupDeadline timestamps
- * 4. Audit log tracking for donation lifecycle changes
+ * Integration:
+ * - Member 2 (Samarth): Persistent CRUD operations in Firestore 'food_donations' collection,
+ *   filtering, audit logging, and lifecycle state management.
+ * - Member 4: Real-time pickup deadline warnings, urgency ranking, and smart expiry filtering.
  * ==============================================================================
  */
 
 import { db } from '../config/firebase.js';
 import { FOOD_STATUS, FOOD_CATEGORY } from '../config/constants.js';
 import { ApiError } from '../utils/ApiError.js';
+import { enrichDonationWithDeadlineWarning, evaluateDeadlineUrgency, URGENCY_TIERS } from '../utils/deadlineUtils.js';
 
 export const donationService = {
   /**
-   * Retrieve all food donations from database with optional filters
+   * Retrieve all food donations from database with optional filters and live deadline analysis
    * @param {Object} filters
    * @param {string} [filters.category]
    * @param {string} [filters.status]
    * @param {string} [filters.city]
    * @param {string} [filters.donorId]
-   * @returns {Promise<Array>}
+   * @param {string} [filters.urgency]
+   * @returns {Promise<Array>} List of food donations with deadline analysis
    */
   async getAllDonations(filters = {}) {
     const snapshot = await db.collection('food_donations').get();
@@ -68,14 +67,21 @@ export const donationService = {
       donations = donations.filter((d) => d.donorId === filters.donorId);
     }
 
-    // Sort descending by creation date
-    donations.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    // Enrich with deadline analysis
+    let enriched = donations.map(enrichDonationWithDeadlineWarning);
 
-    return donations;
+    if (filters.urgency) {
+      enriched = enriched.filter((d) => d.urgencyTier === filters.urgency);
+    }
+
+    // Sort descending by creation date
+    enriched.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+    return enriched;
   },
 
   /**
-   * Retrieve single donation by foodId
+   * Retrieve a single food donation by ID enriched with deadline analysis
    * @param {string} foodId
    * @returns {Promise<Object|null>}
    */
@@ -85,7 +91,31 @@ export const donationService = {
     if (!doc.exists) {
       return null;
     }
-    return doc.data();
+    return enrichDonationWithDeadlineWarning(doc.data());
+  },
+
+  /**
+   * Get all donations that are expiring soon within specified hours
+   * @param {number} [maxHours=5] Expiration threshold in hours
+   * @returns {Promise<Array>} Expiring food listings sorted by urgency
+   */
+  async getExpiringSoonDonations(maxHours = 5) {
+    const all = await this.getAllDonations({ status: FOOD_STATUS.AVAILABLE });
+
+    const expiring = all.filter((d) => {
+      const hoursLeft = d.deadlineAnalysis?.hoursRemaining;
+      return (
+        d.status === FOOD_STATUS.AVAILABLE &&
+        !d.deadlineAnalysis?.isExpired &&
+        hoursLeft !== undefined &&
+        hoursLeft <= maxHours
+      );
+    });
+
+    // Sort by most urgent first (lowest hours remaining)
+    expiring.sort((a, b) => a.deadlineAnalysis.timeRemainingMs - b.deadlineAnalysis.timeRemainingMs);
+
+    return expiring;
   },
 
   /**
@@ -158,7 +188,7 @@ export const donationService = {
       // Audit log non-blocking
     }
 
-    return newDonation;
+    return enrichDonationWithDeadlineWarning(newDonation);
   },
 
   /**
@@ -179,9 +209,15 @@ export const donationService = {
       updatedAt: new Date().toISOString()
     };
 
-    await db.collection('food_donations').doc(foodId).set(updated, { merge: true });
+    // Remove computed deadline fields before storing back to Firestore
+    const toStore = { ...updated };
+    delete toStore.deadlineAnalysis;
+    delete toStore.urgencyTier;
+    delete toStore.warningMessage;
 
-    return updated;
+    await db.collection('food_donations').doc(foodId).set(toStore, { merge: true });
+
+    return enrichDonationWithDeadlineWarning(updated);
   },
 
   /**
@@ -206,11 +242,13 @@ export const donationService = {
       updatedAt
     });
 
-    return {
+    const updated = {
       ...existing,
       status,
       updatedAt
     };
+
+    return enrichDonationWithDeadlineWarning(updated);
   },
 
   /**
