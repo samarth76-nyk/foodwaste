@@ -14,7 +14,18 @@ export const createRequestSchema = z.object({
 });
 
 export const updateRequestStatusSchema = z.object({
-  requestStatus: z.nativeEnum(REQUEST_STATUS, {
-    errorMap: () => ({ message: `Invalid status. Must be one of: ${Object.values(REQUEST_STATUS).join(', ')}` })
-  })
+  requestStatus: z.preprocess(
+    (val) => {
+      if (typeof val === 'string') {
+        const upper = val.toUpperCase();
+        if (upper === 'ACCEPTED') return 'APPROVED';
+        return upper;
+      }
+      return val;
+    },
+    z.nativeEnum(REQUEST_STATUS, {
+      errorMap: () => ({ message: `Invalid status. Must be one of: ${Object.values(REQUEST_STATUS).join(', ')}` })
+    })
+  ),
+  rejectionReason: z.string().max(300).optional()
 });

@@ -7,12 +7,14 @@ import { donationService } from '../services/donation.service.js';
  * ==============================================================================
  * FOOD DONATIONS CONTROLLER
  * ==============================================================================
- * Smart Features & Integration (Member 4)
+ * Responsible Teammate: Teammate 3 / Shreya (Food Donation, Requests & Admin)
+ * Integration with Member 4 (Smart Features & Deadline Warnings)
+ * ==============================================================================
  */
 
 export const getAllDonations = asyncHandler(async (req, res) => {
-  const { category, status, city, urgency } = req.query;
-  const donations = await donationService.getAllDonations({ category, status, city, urgency });
+  const { category, status, city, donorId, urgency } = req.query;
+  const donations = await donationService.getAllDonations({ category, status, city, donorId, urgency });
   return ApiResponse.success(res, donations, 'Donations retrieved successfully', 200, {
     count: donations.length
   });
@@ -50,7 +52,7 @@ export const createDonation = asyncHandler(async (req, res) => {
 
 export const updateDonation = asyncHandler(async (req, res) => {
   const { foodId } = req.params;
-  const updated = await donationService.updateDonation(foodId, req.body);
+  const updated = await donationService.updateDonation(foodId, req.body, req.user);
   return ApiResponse.success(res, updated, 'Food donation updated successfully');
 });
 
@@ -58,12 +60,12 @@ export const updateDonationStatus = asyncHandler(async (req, res) => {
   const { foodId } = req.params;
   const { status } = req.body;
   const updated = await donationService.updateDonationStatus(foodId, status);
-  return ApiResponse.success(res, updated, `Food donation status updated to ${status}`);
+  return ApiResponse.success(res, updated, `Food donation status updated to ${updated.status}`);
 });
 
 export const deleteDonation = asyncHandler(async (req, res) => {
   const { foodId } = req.params;
-  await donationService.deleteDonation(foodId);
+  await donationService.deleteDonation(foodId, req.user);
   return ApiResponse.success(res, { foodId }, 'Food donation removed/cancelled successfully');
 });
 

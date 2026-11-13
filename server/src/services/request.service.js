@@ -1,21 +1,19 @@
 /**
  * ==============================================================================
- * SHAREBITE - RECEIVER REQUEST DATABASE SERVICE
+ * SHAREBITE - RECEIVER REQUEST & DONATION WORKFLOW SERVICE
  * ==============================================================================
- * Responsible Teammate: Samarth (Member 2 – Backend & Database)
- *
- * Implements:
- * 1. Persistent CRUD operations in Firestore 'food_requests' collection
- * 2. Food availability and inventory validation before creating request
- * 3. Atomic status transitions (PENDING -> APPROVED / REJECTED / COLLECTED / CANCELLED)
- * 4. Automatic inventory deduction & status transition to CLAIMED upon approval
+ * Integration:
+ * - Member 2 (Samarth): Database persistence, audit logging in Firestore
+ * - Member 3 (Shreya): Complete donation workflow, request food, accept/reject, status transitions
  * ==============================================================================
  */
 
 import { db } from '../config/firebase.js';
 import { REQUEST_STATUS, FOOD_STATUS } from '../config/constants.js';
 import { ApiError } from '../utils/ApiError.js';
-import { donationService } from './donation.service.js';
+import { donationService, parseNumericQuantity } from './donation.service.js';
+
+const COLLECTION_NAME = 'food_requests';
 
 export const requestService = {
   /**
@@ -24,21 +22,25 @@ export const requestService = {
    * @param {string} [filters.status]
    * @param {string} [filters.foodId]
    * @param {string} [filters.receiverId]
+   * @param {string} [filters.donorId]
    * @returns {Promise<Array>}
    */
   async getAllRequests(filters = {}) {
-    const snapshot = await db.collection('food_requests').get();
+    const snapshot = await db.collection(COLLECTION_NAME).get();
     let requests = snapshot.docs.map((d) => d.data());
 
     if (filters.status) {
       const matchStatus = filters.status.toUpperCase();
-      requests = requests.filter((r) => r.requestStatus.toUpperCase() === matchStatus);
+      requests = requests.filter((r) => (r.requestStatus || '').toUpperCase() === matchStatus);
     }
     if (filters.foodId) {
       requests = requests.filter((r) => r.foodId === filters.foodId);
     }
     if (filters.receiverId) {
       requests = requests.filter((r) => r.receiverId === filters.receiverId);
+    }
+    if (filters.donorId) {
+      requests = requests.filter((r) => r.donorId === filters.donorId);
     }
 
     // Sort descending by creation timestamp
@@ -54,7 +56,7 @@ export const requestService = {
    */
   async getRequestById(requestId) {
     if (!requestId) return null;
-    const doc = await db.collection('food_requests').doc(requestId).get();
+    const doc = await db.collection(COLLECTION_NAME).doc(requestId).get();
     if (!doc.exists) {
       return null;
     }
@@ -62,41 +64,79 @@ export const requestService = {
   },
 
   /**
-   * Create and store a receiver request in the database
+   * Get all requests made by a specific receiver
+   * @param {string} receiverId
+   * @returns {Promise<Array>}
+   */
+  async getRequestsByReceiver(receiverId) {
+    return this.getAllRequests({ receiverId });
+  },
+
+  /**
+   * Get all requests for food listings belonging to a specific donor
+   * @param {string} donorId
+   * @returns {Promise<Array>}
+   */
+  async getRequestsByDonor(donorId) {
+    return this.getAllRequests({ donorId });
+  },
+
+  /**
+   * Create and store a receiver request in the database (Member 3 Core Functionality)
    * @param {Object} requestData
+   * @param {Object} [userContext]
    * @returns {Promise<Object>} Created request document
    */
-  async createRequest(requestData) {
+  async createRequest(requestData, userContext = null) {
     const { foodId, receiverId, requestedQuantity, notes } = requestData;
 
-    // Validate that food donation exists in database
+    // 1. Validate that food donation exists in database
     const food = await donationService.getDonationById(foodId);
     if (!food) {
-      throw ApiError.notFound(`Food donation listing '${foodId}' was not found`);
+      throw ApiError.notFound(`Food listing with ID '${foodId}' was not found`);
     }
 
-    // Check food status
-    if (food.status !== FOOD_STATUS.AVAILABLE) {
-      throw ApiError.badRequest(`Food donation is not currently available (status: ${food.status})`);
+    // 2. Check food status
+    const nonRequestableStatuses = [
+      FOOD_STATUS.EXPIRED,
+      FOOD_STATUS.CANCELLED,
+      FOOD_STATUS.COLLECTED,
+      FOOD_STATUS.COMPLETED
+    ];
+    if (nonRequestableStatuses.includes(food.status)) {
+      throw ApiError.badRequest(`This food donation is currently marked '${food.status}' and cannot be requested`);
     }
 
-    // Extract numeric portion of food.quantity
-    let numericFoodQty = typeof food.quantity === 'number' ? food.quantity : parseFloat(food.quantity);
-    if (isNaN(numericFoodQty)) numericFoodQty = 1;
+    // 3. Extract numeric portion of food availability
+    const availableQty = food.availableQuantity !== undefined
+      ? food.availableQuantity
+      : parseNumericQuantity(food.quantity);
 
     const requestedQty = Number(requestedQuantity);
     if (requestedQty <= 0) {
       throw ApiError.badRequest('Requested quantity must be greater than 0');
     }
 
-    if (requestedQty > numericFoodQty) {
+    if (availableQty <= 0 || food.status === FOOD_STATUS.CLAIMED) {
+      throw ApiError.badRequest('This food donation has already been fully claimed');
+    }
+
+    if (requestedQty > availableQty) {
       throw ApiError.badRequest(
-        `Requested quantity (${requestedQty}) exceeds currently available food quantity (${numericFoodQty})`
+        `Requested quantity (${requestedQty}) exceeds available portions (${availableQty})`
       );
     }
 
+    // 4. Prevent duplicate pending requests from the same receiver for this food
+    const existingPending = (await this.getAllRequests({ foodId, receiverId })).filter(
+      (r) => r.requestStatus === REQUEST_STATUS.PENDING
+    );
+    if (existingPending.length > 0) {
+      throw ApiError.conflict('You already have a pending request for this food listing');
+    }
+
     // Resolve receiver name if not provided
-    let receiverName = requestData.receiverName;
+    let receiverName = requestData.receiverName || userContext?.name;
     if (!receiverName && receiverId) {
       try {
         const userDoc = await db.collection('users').doc(receiverId).get();
@@ -124,8 +164,13 @@ export const requestService = {
       updatedAt: new Date().toISOString()
     };
 
+    // 5. Update food status to REQUESTED if currently AVAILABLE
+    if (food.status === FOOD_STATUS.AVAILABLE) {
+      await donationService.updateDonationStatus(food.foodId, FOOD_STATUS.REQUESTED);
+    }
+
     // Store in Firestore
-    await db.collection('food_requests').doc(requestId).set(newRequest);
+    await db.collection(COLLECTION_NAME).doc(requestId).set(newRequest);
 
     // Write audit trail
     try {
@@ -147,70 +192,92 @@ export const requestService = {
 
   /**
    * Update request status (e.g. PENDING -> APPROVED / REJECTED -> COLLECTED)
-   * Handles automated inventory deduction upon approval
+   * Enforces complete donation workflow state machine (Member 3 Core Functionality)
    * @param {string} requestId
-   * @param {string} status
+   * @param {string} newStatus
+   * @param {Object} [metadata]
+   * @param {Object} [userContext]
    * @returns {Promise<Object>}
    */
-  async updateRequestStatus(requestId, status) {
+  async updateRequestStatus(requestId, newStatus, metadata = {}, userContext = null) {
     const existing = await this.getRequestById(requestId);
     if (!existing) {
       throw ApiError.notFound(`Food request with ID '${requestId}' was not found`);
     }
 
-    if (!Object.values(REQUEST_STATUS).includes(status)) {
+    let normalizedStatus = newStatus.toUpperCase();
+    if (normalizedStatus === 'ACCEPTED') normalizedStatus = REQUEST_STATUS.APPROVED;
+
+    if (!Object.values(REQUEST_STATUS).includes(normalizedStatus)) {
       throw ApiError.badRequest(
-        `Invalid request status '${status}'. Must be one of: ${Object.values(REQUEST_STATUS).join(', ')}`
+        `Invalid request status '${newStatus}'. Must be one of: ${Object.values(REQUEST_STATUS).join(', ')}`
       );
     }
 
     const previousStatus = existing.requestStatus;
-
-    // Handle inventory adjustment when request is APPROVED
-    if (previousStatus !== REQUEST_STATUS.APPROVED && status === REQUEST_STATUS.APPROVED) {
-      const food = await donationService.getDonationById(existing.foodId);
-      if (food) {
-        let currentQty = typeof food.quantity === 'number' ? food.quantity : parseFloat(food.quantity);
-        if (isNaN(currentQty)) currentQty = 1;
-
-        const remaining = Math.max(0, currentQty - existing.requestedQuantity);
-        const newFoodStatus = remaining <= 0 ? FOOD_STATUS.CLAIMED : food.status;
-
-        await db.collection('food_donations').doc(food.foodId).update({
-          quantity: remaining,
-          status: newFoodStatus,
-          updatedAt: new Date().toISOString()
-        });
-      }
-    }
-
-    // Handle inventory restoration if an APPROVED request is later CANCELLED or REJECTED
-    if (previousStatus === REQUEST_STATUS.APPROVED && (status === REQUEST_STATUS.CANCELLED || status === REQUEST_STATUS.REJECTED)) {
-      const food = await donationService.getDonationById(existing.foodId);
-      if (food) {
-        let currentQty = typeof food.quantity === 'number' ? food.quantity : parseFloat(food.quantity);
-        if (isNaN(currentQty)) currentQty = 0;
-
-        const restoredQty = currentQty + existing.requestedQuantity;
-        await db.collection('food_donations').doc(food.foodId).update({
-          quantity: restoredQty,
-          status: FOOD_STATUS.AVAILABLE,
-          updatedAt: new Date().toISOString()
-        });
-      }
+    if (previousStatus === normalizedStatus) {
+      return existing; // idempotent no-op
     }
 
     const updatedAt = new Date().toISOString();
     const updatedRequest = {
       ...existing,
-      requestStatus: status,
+      requestStatus: normalizedStatus,
       updatedAt
     };
 
-    await db.collection('food_requests').doc(requestId).update({
-      requestStatus: status,
-      updatedAt
-    });
+    // 1. APPROVED / ACCEPTED
+    if (normalizedStatus === REQUEST_STATUS.APPROVED) {
+      if (previousStatus !== REQUEST_STATUS.PENDING) {
+        throw ApiError.badRequest(`Cannot approve request in '${previousStatus}' status. Must be PENDING.`);
+      }
+
+      await donationService.deductQuantity(existing.foodId, existing.requestedQuantity);
+      updatedRequest.approvedAt = updatedAt;
+    } 
+    // 2. REJECTED
+    else if (normalizedStatus === REQUEST_STATUS.REJECTED) {
+      if (previousStatus !== REQUEST_STATUS.PENDING) {
+        throw ApiError.badRequest(`Cannot reject request in '${previousStatus}' status. Must be PENDING.`);
+      }
+
+      updatedRequest.rejectedAt = updatedAt;
+      if (metadata.rejectionReason) {
+        updatedRequest.rejectionReason = metadata.rejectionReason;
+      }
+
+      // Check if food status should revert to AVAILABLE
+      const food = await donationService.getDonationById(existing.foodId);
+      if (food && (food.availableQuantity || 0) > 0) {
+        const remainingPending = (await this.getAllRequests({
+          foodId: existing.foodId,
+          status: REQUEST_STATUS.PENDING
+        })).filter((r) => r.requestId !== requestId);
+
+        if (remainingPending.length === 0) {
+          await donationService.updateDonationStatus(food.foodId, FOOD_STATUS.AVAILABLE);
+        }
+      }
+    } 
+    // 3. COLLECTED
+    else if (normalizedStatus === REQUEST_STATUS.COLLECTED) {
+      if (previousStatus !== REQUEST_STATUS.APPROVED) {
+        throw ApiError.badRequest(`Cannot mark request COLLECTED unless it has been APPROVED first.`);
+      }
+
+      updatedRequest.collectedAt = updatedAt;
+      // Mark food status as COLLECTED
+      await donationService.updateDonationStatus(existing.foodId, FOOD_STATUS.COLLECTED);
+    } 
+    // 4. CANCELLED
+    else if (normalizedStatus === REQUEST_STATUS.CANCELLED) {
+      if (previousStatus === REQUEST_STATUS.APPROVED) {
+        await donationService.restoreQuantity(existing.foodId, existing.requestedQuantity);
+      }
+      updatedRequest.cancelledAt = updatedAt;
+    }
+
+    await db.collection(COLLECTION_NAME).doc(requestId).update(updatedRequest);
 
     // Write audit trail
     try {
@@ -220,8 +287,8 @@ export const requestService = {
         action: 'REQUEST_STATUS_CHANGED',
         performedBy: existing.receiverId,
         targetEntityId: requestId,
-        metadata: { from: previousStatus, to: status },
-        timestamp: new Date().toISOString()
+        metadata: { from: previousStatus, to: normalizedStatus },
+        timestamp: updatedAt
       });
     } catch (e) {
       // Non-blocking
@@ -231,12 +298,39 @@ export const requestService = {
   },
 
   /**
-   * Get all requests made by a specific receiver
-   * @param {string} receiverId
-   * @returns {Promise<Array>}
+   * Convenience method: Accept / Approve a food request (Member 3)
+   * @param {string} requestId
+   * @param {Object} [userContext]
+   * @returns {Promise<Object>}
    */
-  async getRequestsByReceiver(receiverId) {
-    return this.getAllRequests({ receiverId });
+  async acceptRequest(requestId, userContext = null) {
+    return this.updateRequestStatus(requestId, REQUEST_STATUS.APPROVED, {}, userContext);
+  },
+
+  /**
+   * Convenience method: Reject a food request (Member 3)
+   * @param {string} requestId
+   * @param {string} [rejectionReason]
+   * @param {Object} [userContext]
+   * @returns {Promise<Object>}
+   */
+  async rejectRequest(requestId, rejectionReason = '', userContext = null) {
+    return this.updateRequestStatus(
+      requestId,
+      REQUEST_STATUS.REJECTED,
+      { rejectionReason },
+      userContext
+    );
+  },
+
+  /**
+   * Convenience method: Mark an approved request as collected (Member 3)
+   * @param {string} requestId
+   * @param {Object} [userContext]
+   * @returns {Promise<Object>}
+   */
+  async collectRequest(requestId, userContext = null) {
+    return this.updateRequestStatus(requestId, REQUEST_STATUS.COLLECTED, {}, userContext);
   }
 };
 

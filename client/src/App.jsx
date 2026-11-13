@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from './api/apiClient';
 import API_ENDPOINTS from './api/endpoints';
+import DonationWorkflow from './components/DonationWorkflow';
 import { FOOD_CATEGORY, FOOD_STATUS, REQUEST_STATUS } from './contracts/models';
 
 /**
@@ -10,13 +11,14 @@ import { FOOD_CATEGORY, FOOD_STATUS, REQUEST_STATUS } from './contracts/models';
  * Integrated Features:
  * - Member 2 (Samarth): Persistent Firebase/Firestore Database Storage & Retrieval,
  *   Food Donation CRUD, Receiver Request Management with Automated Inventory Deduction.
+ * - Member 3 (Shreya): Complete Donation Workflow (Food Upload, Request Food, Accept/Reject, Status Lifecycle).
  * - Member 4: Distance-Based Nearby NGO Matching (Haversine Algorithm),
  *   Pickup Deadline Warnings (< 2h Critical, < 5h Warning), EPA/FAO Environmental Analytics.
  * ==============================================================================
  */
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('donations');
+  const [activeTab, setActiveTab] = useState('donation-workflow');
   const [healthStatus, setHealthStatus] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -427,6 +429,7 @@ export default function App() {
       {/* Primary Navigation Tabs */}
       <nav style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
         {[
+          { id: 'donation-workflow', label: '🍲 Complete Donation Workflow (Member 3: Shreya)' },
           { id: 'donations', label: '🥘 Food Donations (Store & List)', count: donations.length },
           { id: 'requests', label: '📦 Receiver Requests (Store & Manage)', count: requests.length },
           { id: 'ngo-matching', label: '📍 Nearby NGO Matching (Haversine)' },
@@ -467,6 +470,9 @@ export default function App() {
           </button>
         ))}
       </nav>
+
+      {/* Primary Tab: Member 3 Donation Workflow */}
+      {activeTab === 'donation-workflow' && <DonationWorkflow />}
 
       {/* TAB 1: FOOD DONATIONS */}
       {activeTab === 'donations' && (
