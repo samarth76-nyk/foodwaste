@@ -52,7 +52,7 @@ const patch = async (path, body, headers = {}) => {
   return { status: res.status, data };
 };
 
-describe('ShareBite Full Integration: Member 2 Database & Member 4 Smart Features Tests', () => {
+describe('ShareBite Full Integration: Database & Smart Features Tests', () => {
 
   it('1. GET /api/health returns 200 with database operational status', async () => {
     const { status, data } = await get('/health');
@@ -203,7 +203,7 @@ describe('ShareBite Full Integration: Member 2 Database & Member 4 Smart Feature
   });
 
   // =========================================================================
-  // MEMBER 4 - SMART FEATURES VERIFICATION TESTS
+  // SMART FEATURES VERIFICATION TESTS
   // =========================================================================
 
   it('13. GET /api/matching/donations/:foodId/ngos matches nearby NGOs using Haversine formula', async () => {

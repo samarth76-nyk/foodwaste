@@ -4,7 +4,6 @@ import { FOOD_CATEGORY } from '../contracts/models';
 
 /**
  * DonationsPage Component
- * Designed by Tanisha (Member 1 - Frontend & UI)
  * Marketplace to browse, filter, search, and claim surplus food donations.
  */
 export default function DonationsPage({
@@ -181,7 +180,7 @@ export default function DonationsPage({
             Try clearing filters or search term, or post a new food donation to make it available for local shelters.
           </p>
           <button
-            onClick={() => { setSearchTerm(''); setSelectedCategory('ALL'); setSelectedStatus('ALL'); }}
+            onClick={() => { setSearchTerm(''); setSelectedCategory('ALL'); setSelectedStatus('ALL'); setSelectedUrgency('ALL'); }}
             className="btn btn-outline"
           >
             Clear Filters

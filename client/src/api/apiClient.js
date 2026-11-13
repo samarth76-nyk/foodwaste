@@ -17,7 +17,7 @@ export const apiClient = axios.create({
 // Request Interceptor: Attach Auth Token if present
 apiClient.interceptors.request.use(
   (config) => {
-    // Teammate 1 & 2: Store your token in localStorage as 'sharebite_token'
+    // Store auth token in localStorage as 'sharebite_token'
     const token = localStorage.getItem('sharebite_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

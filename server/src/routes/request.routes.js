@@ -11,7 +11,7 @@ const router = Router();
 
 /**
  * ==============================================================================
- * FOOD REQUESTS ROUTES (TEAMMATE 3 INTEGRATION POINT)
+ * FOOD REQUESTS ROUTES
  * ==============================================================================
  */
 
@@ -55,7 +55,7 @@ router.patch(
 
 /**
  * @route   POST /api/requests/:requestId/accept
- * @desc    Accept / Approve food request (Member 3 Core Functionality)
+ * @desc    Accept / Approve food request
  * @access  Private (Donor / Volunteer / Admin)
  */
 router.post(
@@ -66,7 +66,7 @@ router.post(
 
 /**
  * @route   POST /api/requests/:requestId/reject
- * @desc    Reject food request (Member 3 Core Functionality)
+ * @desc    Reject food request
  * @access  Private (Donor / Volunteer / Admin)
  */
 router.post(

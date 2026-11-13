@@ -16,7 +16,6 @@ export const getHealth = (req, res) => {
     uptimeSeconds: Math.floor(process.uptime()),
     environment: env.NODE_ENV,
     version: '1.0.0',
-    member: 'Member 2 – Backend & Database (Samarth)',
     services: {
       api: 'operational',
       database: isFirebaseConfigured ? 'connected (Google Cloud Firebase Firestore)' : 'operational (Local Persistent Firestore Storage)'

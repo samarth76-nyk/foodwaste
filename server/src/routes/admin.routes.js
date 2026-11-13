@@ -9,7 +9,7 @@ const router = Router();
 
 /**
  * ==============================================================================
- * ADMIN DASHBOARD ROUTES (TEAMMATE 3 INTEGRATION POINT)
+ * ADMIN DASHBOARD ROUTES
  * All endpoints require ADMIN role authorization
  * ==============================================================================
  */

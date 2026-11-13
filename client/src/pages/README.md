@@ -1,8 +1,6 @@
 # Frontend Pages Directory
 
-> **Assigned to: Teammate 1 (Frontend & UI)**
-
-This directory is reserved for page-level components and route views.
+This directory contains page-level components and route views for the ShareBite frontend application.
 
 ## Recommended Pages to Create:
 - `HomePage.jsx` – Landing page with mission, call-to-actions, and live stats overview.

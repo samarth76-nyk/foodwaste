@@ -1,26 +1,26 @@
-# ShareBite – Team Integration & Developer Onboarding Guide
+# ShareBite – Developer & Subsystems Integration Guide
 
-Welcome to the **ShareBite** engineering repository. This guide defines team roles, assigned file boundaries, integration steps, and Git branching rules so all four team members can build in parallel without merge conflicts.
+Welcome to the **ShareBite** engineering repository. This guide defines subsystem domains, directory boundaries, integration steps, and Git branching rules for modular development.
 
 ---
 
-## 1. Team Responsibilities & File Boundaries
+## 1. Subsystem Responsibilities & File Boundaries
 
-| Team Member | Responsibility Domain | Primary Directory Boundaries |
+| Subsystem | Responsibility Domain | Primary Directory Boundaries |
 |---|---|---|
-| **Architect / Lead (You)** | Project Architecture, Integration & Backend Config | `server/src/app.js`, `server/src/server.js`, `server/src/routes/index.js`, `docs/`, Root configs |
-| **Teammate 1** | Frontend and UI Components | `client/src/pages/`, `client/src/components/`, `client/src/App.jsx` |
-| **Teammate 2** | Firebase, Firestore & Authentication | `server/src/config/firebase.js`, `server/src/middleware/auth.middleware.js`, `server/src/services/auth.service.js` |
-| **Teammate 3** | Donations, Requests & Admin Business Logic | `server/src/services/donation.service.js`, `server/src/services/request.service.js`, `server/src/services/admin.service.js`, `server/src/services/stats.service.js` |
+| **Core Architecture & Server** | Project Architecture, Integration & Server Config | `server/src/app.js`, `server/src/server.js`, `server/src/routes/index.js`, `docs/`, Root configs |
+| **Frontend & UI** | Frontend and UI Components | `client/src/pages/`, `client/src/components/`, `client/src/App.jsx` |
+| **Authentication & Database** | Firebase, Firestore & Authentication | `server/src/config/firebase.js`, `server/src/middleware/auth.middleware.js`, `server/src/services/auth.service.js` |
+| **Donations, Requests & Admin** | Donations, Requests & Admin Business Logic | `server/src/services/donation.service.js`, `server/src/services/request.service.js`, `server/src/services/admin.service.js`, `server/src/services/stats.service.js` |
 
 ---
 
-## 2. Guide for Teammate 1: Frontend & UI
+## 2. Frontend & UI Subsystem Guide
 
-### 2.1 Your Goal
+### 2.1 Subsystem Scope
 Build the user-facing interface in React using Vite.
 
-### 2.2 Files You Own
+### 2.2 Files
 - `client/src/pages/*` – All page routes (e.g. `HomePage.jsx`, `DonationsPage.jsx`, `RequestsPage.jsx`, `AdminPage.jsx`)
 - `client/src/components/*` – Reusable UI widgets (cards, forms, modal dialogs, status badges)
 - `client/src/App.jsx` – Wrap or mount your UI / React Router
@@ -52,12 +52,12 @@ Build the user-facing interface in React using Vite.
 
 ---
 
-## 3. Guide for Teammate 2: Firebase and Database
+## 3. Firebase & Database Subsystem Guide
 
-### 3.1 Your Goal
+### 3.1 Subsystem Scope
 Connect Google Firebase (Authentication & Firestore NoSQL) to both backend and frontend.
 
-### 3.2 Files You Own
+### 3.2 Key Files
 - `server/src/config/firebase.js`
 - `server/src/middleware/auth.middleware.js`
 - `server/src/services/auth.service.js`
@@ -106,12 +106,12 @@ Connect Google Firebase (Authentication & Firestore NoSQL) to both backend and f
 
 ---
 
-## 4. Guide for Teammate 3: Food Donations, Requests & Admin
+## 4. Food Donations, Requests & Admin Subsystem Guide
 
-### 4.1 Your Goal
+### 4.1 Subsystem Scope
 Implement the business logic, state transitions, matching, and Firestore queries for donations, requests, and administration.
 
-### 4.2 Files You Own
+### 4.2 Key Files
 - `server/src/services/donation.service.js`
 - `server/src/services/request.service.js`
 - `server/src/services/admin.service.js`
@@ -146,14 +146,14 @@ Implement the business logic, state transitions, matching, and Firestore queries
 
 ## 5. Git Branching & Conflict Avoidance Strategy
 
-To ensure four developers do not collide on the same files:
+To maintain clean modular git branches across features:
 
 ```
 main (Production Ready)
  └── integration (Staging & Architecture)
-      ├── feature/frontend-ui           (Teammate 1 branch)
-      ├── feature/firebase-auth-db      (Teammate 2 branch)
-      └── feature/donations-requests    (Teammate 3 branch)
+      ├── feature/frontend-ui           (Frontend UI branch)
+      ├── feature/firebase-auth-db      (Database & Auth branch)
+      └── feature/donations-requests    (Donations & Requests branch)
 ```
 
 ### 5.1 Branching Rules
@@ -164,7 +164,7 @@ main (Production Ready)
    git fetch origin
    git rebase origin/integration
    ```
-4. Do not modify files in other teammates' primary directories without notifying them.
+4. Keep feature boundaries decoupled to prevent conflicts.
 5. All route registrations in `server/src/routes/` are already decoupled into individual route files, so editing one route file will **never** cause conflicts with another.
 
 ---

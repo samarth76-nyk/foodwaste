@@ -8,7 +8,6 @@ import { db } from '../config/firebase.js';
  * ==============================================================================
  * AUTHENTICATION CONTROLLER (DATABASE INTEGRATED)
  * ==============================================================================
- * Responsible Teammate: Samarth (Member 2 – Backend & Database)
  */
 
 export const register = asyncHandler(async (req, res) => {

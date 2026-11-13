@@ -2,10 +2,10 @@
  * ==============================================================================
  * SHAREBITE - IMPACT STATISTICS & ENVIRONMENTAL ANALYTICS SERVICE
  * ==============================================================================
- * Integration:
- * - Member 2 (Samarth): Database aggregation from Firestore collections (donations, requests, users).
- * - Member 3 (Shreya): Core workflow statistics & live metric tracking.
- * - Member 4: Environmental models (EPA WARM, FAO), equivalency calculations, category breakdown, leaderboard.
+ * Features:
+ * - Database aggregation from Firestore collections (donations, requests, users)
+ * - Core workflow statistics & live metric tracking
+ * - Environmental models (EPA WARM, FAO), equivalency calculations, category breakdown, leaderboard
  * ==============================================================================
  */
 

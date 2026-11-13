@@ -4,8 +4,7 @@ import API_ENDPOINTS from '../api/endpoints';
 
 /**
  * MatchingPage Component
- * Designed by Tanisha (Member 1 - Frontend & UI) with Member 4 Haversine matching
- * Real-time geospatial matching connecting donors with nearest recipient NGOs.
+ * Real-time geospatial matching connecting donors with nearest recipient NGOs via Haversine algorithm.
  */
 export default function MatchingPage({
   donations = [],

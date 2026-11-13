@@ -7,9 +7,6 @@ import { donationService } from '../services/donation.service.js';
  * ==============================================================================
  * FOOD DONATIONS CONTROLLER
  * ==============================================================================
- * Responsible Teammate: Teammate 3 / Shreya (Food Donation, Requests & Admin)
- * Integration with Member 4 (Smart Features & Deadline Warnings)
- * ==============================================================================
  */
 
 export const getAllDonations = asyncHandler(async (req, res) => {
@@ -31,7 +28,6 @@ export const getDonationById = asyncHandler(async (req, res) => {
 
 /**
  * Pickup Deadline Warnings: Get donations expiring soon within threshold hours
- * Member 4 - Pickup deadline warnings
  */
 export const getExpiringSoonDonations = asyncHandler(async (req, res) => {
   const maxHours = req.query.hours ? parseFloat(req.query.hours) : 5;

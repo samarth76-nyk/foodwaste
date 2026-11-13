@@ -3,7 +3,6 @@ import FoodCard from '../components/FoodCard';
 
 /**
  * HomePage Component
- * Designed by Tanisha (Member 1 - Frontend & UI)
  * Features Hero section, live impact metrics ticker, how it works, and urgent listings preview.
  */
 export default function HomePage({
@@ -14,8 +13,9 @@ export default function HomePage({
   onOpenDonationModal
 }) {
   // Urgent food listings expiring soonest
-  const urgentListings = donations
+  const urgentListings = [...donations]
     .filter((d) => d.status === 'AVAILABLE')
+    .sort((a, b) => new Date(a.pickupDeadline || 0) - new Date(b.pickupDeadline || 0))
     .slice(0, 3);
 
   return (

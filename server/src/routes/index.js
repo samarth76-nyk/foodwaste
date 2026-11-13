@@ -19,15 +19,15 @@ const apiRouter = Router();
 // Core Health Check
 apiRouter.use('/health', healthRoutes);
 
-// Authentication (Teammate 2)
+// Authentication
 apiRouter.use('/auth', authRoutes);
 
-// Core Modules (Teammate 3)
+// Core Modules
 apiRouter.use('/donations', donationRoutes);
 apiRouter.use('/requests', requestRoutes);
 apiRouter.use('/admin', adminRoutes);
 
-// Member 4 - Smart Features & Integration
+// Proximity & Impact Analytics
 apiRouter.use('/stats', statsRoutes);
 apiRouter.use('/matching', matchingRoutes);
 

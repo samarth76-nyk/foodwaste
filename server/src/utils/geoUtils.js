@@ -2,7 +2,6 @@
  * ==============================================================================
  * SHAREBITE - GEOGRAPHIC & DISTANCE UTILITIES
  * ==============================================================================
- * Member 4 - Smart Features & Integration
  * 
  * Provides Haversine great-circle distance calculations and transit estimations
  * between GPS coordinates (latitude, longitude).

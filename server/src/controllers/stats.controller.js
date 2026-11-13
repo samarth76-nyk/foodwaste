@@ -6,7 +6,6 @@ import { statsService } from '../services/stats.service.js';
  * ==============================================================================
  * IMPACT STATISTICS & ANALYTICS CONTROLLER
  * ==============================================================================
- * Member 4 - Smart Features & Integration
  */
 
 export const getOverviewStats = asyncHandler(async (req, res) => {

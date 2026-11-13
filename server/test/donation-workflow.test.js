@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MEMBER 3 (SHREYA) - CORE FUNCTIONALITY TEST SUITE
+ * COMPLETE DONATION WORKFLOW TEST SUITE
  * ==============================================================================
  * Tests the complete donation workflow:
  * 1. Implement food upload (Donation creation)
@@ -26,7 +26,7 @@ before(async () => {
     server = http.createServer(app).listen(0, '127.0.0.1', () => {
       const port = server.address().port;
       baseUrl = `http://127.0.0.1:${port}/api`;
-      console.log(`[Member 3 Test Suite] Server initialized at ${baseUrl}`);
+      console.log(`[Donation Workflow Test Suite] Server initialized at ${baseUrl}`);
       resolve();
     });
   });
@@ -62,10 +62,10 @@ const patch = async (path, body, headers = {}) => {
   return { status: res.status, data };
 };
 
-describe('Member 3: Complete Donation Workflow', () => {
+describe('Complete Donation Workflow', () => {
   let createdFoodId = '';
   let createdRequestId = '';
-  const testDonorId = 'usr_donor_shreya';
+  const testDonorId = 'usr_donor_test';
   const testReceiverId = 'usr_receiver_shelter';
 
   // --- 1. FOOD UPLOAD ---

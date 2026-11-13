@@ -7,9 +7,7 @@ import { FOOD_CATEGORY, FOOD_STATUS, REQUEST_STATUS } from '../contracts/models'
  * ==============================================================================
  * SHAREBITE - COMPLETE DONATION WORKFLOW COMPONENT
  * ==============================================================================
- * Responsible: Member 3 (Shreya) – Core Functionality
- * 
- * Features:
+ * Core Functionality:
  * 1. Food Upload (Listing creation with validation)
  * 2. Request Food (Portion checks & status transitions)
  * 3. Accept / Reject Functionality (Donor approvals/rejections with portion deduction)
@@ -34,8 +32,8 @@ export default function DonationWorkflow() {
     foodName: '',
     quantity: '20 portions',
     category: FOOD_CATEGORY.COOKED_MEALS,
-    donorId: 'usr_donor_shreya',
-    donorName: 'Shreya Kitchen & Cafe',
+    donorId: 'usr_donor_kitchen',
+    donorName: 'Community Kitchen & Cafe',
     address: '12 Brigade Road',
     city: 'Bangalore',
     preparedTime: defaultPrep,
@@ -236,7 +234,7 @@ export default function DonationWorkflow() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ fontSize: '28px' }}>🍲</span>
               <h2 style={{ fontSize: '22px', fontWeight: 700, margin: 0 }}>
-                Member 3: Core Donation Workflow
+                Complete Donation Workflow
               </h2>
               <span style={{
                 background: 'rgba(255,255,255,0.25)',
@@ -245,7 +243,7 @@ export default function DonationWorkflow() {
                 fontSize: '12px',
                 fontWeight: 600
               }}>
-                By Shreya
+                Lifecycle Pipeline
               </span>
             </div>
             <p style={{ margin: '8px 0 0 0', opacity: 0.95, fontSize: '14px' }}>
@@ -766,7 +764,7 @@ export default function DonationWorkflow() {
                         </span>
                       )}
 
-                      {/* Manual Status Transition Dropdown (Member 3 update status feature) */}
+                      {/* Manual Status Transition Dropdown (Update status feature) */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ fontSize: '11px', color: '#64748b' }}>Change Status:</span>
                         <select

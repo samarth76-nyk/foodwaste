@@ -5,7 +5,6 @@ import { FOOD_CATEGORY, FOOD_STATUS } from '../contracts/models';
 
 /**
  * DonationModal Component
- * Designed by Tanisha (Member 1 - Frontend & UI)
  * Responsive modal allowing food donors to post surplus food into the live database.
  */
 export default function DonationModal({

@@ -4,8 +4,7 @@ import API_ENDPOINTS from '../api/endpoints';
 
 /**
  * ImpactPage Component
- * Designed by Tanisha (Member 1 - Frontend & UI) with Member 4 EPA Models
- * High-visibility environmental & social impact dashboard with interactive calculators.
+ * High-visibility environmental & social impact dashboard with interactive EPA WARM calculators.
  */
 export default function ImpactPage({
   impactMetrics,

@@ -8,7 +8,7 @@ const router = Router();
 
 /**
  * ==============================================================================
- * AUTHENTICATION ROUTES (TEAMMATE 2 INTEGRATION POINT)
+ * AUTHENTICATION ROUTES
  * ==============================================================================
  */
 

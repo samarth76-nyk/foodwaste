@@ -2,7 +2,6 @@
  * ==============================================================================
  * SHAREBITE - FIREBASE & DATABASE CONFIGURATION
  * ==============================================================================
- * Responsible Teammate: Samarth (Member 2 – Backend & Database)
  *
  * Implements:
  * 1. Cloud Firebase Admin SDK connection when credentials / service account are supplied.
@@ -53,8 +52,8 @@ const INITIAL_SEED_DATA = {
     },
     'usr_admin': {
       userId: 'usr_admin',
-      name: 'Samarth (System Admin)',
-      email: 'samarth@sharebite.org',
+      name: 'System Admin',
+      email: 'admin@sharebite.org',
       role: USER_ROLE.ADMIN,
       phone: '+1-555-099-0001',
       address: 'ShareBite HQ, Tech Park, Metro City',
@@ -127,7 +126,7 @@ const INITIAL_SEED_DATA = {
       action: 'SYSTEM_INITIALIZED',
       performedBy: 'usr_admin',
       targetEntityId: 'system',
-      metadata: { initializedBy: 'Samarth', module: 'Member 2 – Backend & Database' },
+      metadata: { initializedBy: 'System', module: 'Database & Storage Engine' },
       timestamp: new Date().toISOString()
     }
   }
@@ -505,9 +504,9 @@ export const auth = firebaseAuth || {
       // Default to dev admin user
       matchedUser = users['usr_admin'] || {
         userId: 'usr_admin',
-        email: 'samarth@sharebite.org',
+        email: 'admin@sharebite.org',
         role: USER_ROLE.ADMIN,
-        name: 'Samarth (System Admin)'
+        name: 'System Admin'
       };
     }
 

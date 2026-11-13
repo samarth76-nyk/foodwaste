@@ -2,7 +2,6 @@
  * ==============================================================================
  * SHAREBITE - PICKUP DEADLINE & EXPIRATION WARNING UTILITIES
  * ==============================================================================
- * Member 4 - Smart Features & Integration
  * 
  * Computes real-time expiration countdowns, urgency tier classification,
  * warning badges, and priority scores for perishable food donations.
