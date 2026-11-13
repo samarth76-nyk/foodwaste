@@ -6,8 +6,10 @@ import { REQUEST_STATUS } from '../config/constants.js';
  * Fields: requestId, foodId, receiverId, requestedQuantity, requestStatus, createdAt
  */
 export const createRequestSchema = z.object({
+  requestId: z.string().optional(),
   foodId: z.string().min(1, 'Food ID is required'),
   receiverId: z.string().min(1, 'Receiver ID is required'),
+  receiverName: z.string().optional(),
   requestedQuantity: z.number().positive('Requested quantity must be greater than 0'),
   requestStatus: z.nativeEnum(REQUEST_STATUS).default(REQUEST_STATUS.PENDING),
   notes: z.string().max(300).optional()

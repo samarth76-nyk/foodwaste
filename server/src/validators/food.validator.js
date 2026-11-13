@@ -16,6 +16,7 @@ export const locationSchema = z.object({
  * Fields: foodId, foodName, quantity, category, donorId, location, preparedTime, pickupDeadline, status, allergens
  */
 export const createFoodSchema = z.object({
+  foodId: z.string().optional(),
   foodName: z.string().min(2, 'Food name must be at least 2 characters').max(100),
   quantity: z.union([
     z.number().positive('Quantity must be a positive number'),
@@ -25,6 +26,8 @@ export const createFoodSchema = z.object({
     errorMap: () => ({ message: `Invalid category. Must be one of: ${Object.values(FOOD_CATEGORY).join(', ')}` })
   }),
   donorId: z.string().min(1, 'Donor ID is required'),
+  donorName: z.string().optional(),
+  storageInstructions: z.string().optional(),
   location: locationSchema,
   preparedTime: z.string().datetime({ message: 'Prepared time must be a valid ISO-8601 date string' }),
   pickupDeadline: z.string().datetime({ message: 'Pickup deadline must be a valid ISO-8601 date string' }),
