@@ -281,3 +281,100 @@ Every endpoint returns a predictable, standardized envelope.
 #### `GET /api/stats/categories`
 - **Access:** Public
 - **Response `200 OK`:** Category breakdown with counts and percentages.
+
+
+---
+
+### 3.7 Nearby NGO Matching Engine (Member 4)
+
+#### `GET /api/matching/donations/:foodId/ngos`
+- **Access:** Public
+- **Query Params:** `radius` (in kilometers, default: `20`)
+- **Description:** Algorithmic ranking of recipient NGOs using Haversine distance, transit feasibility, category alignment, and capacity.
+- **Sample Response `200 OK`:**
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Found 3 nearby recipient NGOs within 20 km radius.",
+  "data": {
+    "donation": {
+      "foodId": "food_001",
+      "foodName": "Fresh Vegetable Curry & Rice",
+      "category": "Cooked Meals",
+      "quantity": "25 portions",
+      "urgencyTier": "CRITICAL",
+      "timeRemainingFormatted": "1h 28m remaining"
+    },
+    "searchRadiusKm": 20,
+    "totalMatches": 3,
+    "matches": [
+      {
+        "ngoId": "ngo_hope_shelter",
+        "name": "Hope Community Shelter",
+        "category": "Homeless Shelter & Kitchen",
+        "contactPerson": "Sarah Jenkins",
+        "phone": "+1-555-234-5678",
+        "distanceKm": 0.61,
+        "estimatedTransitMinutes": 6,
+        "isTransitFeasible": true,
+        "categoryMatch": true,
+        "matchScore": 98
+      }
+    ]
+  }
+}
+```
+
+#### `GET /api/matching/nearby-donations`
+- **Access:** Public
+- **Query Params:** `lat`, `lng`, `radius` (km), `category` (optional)
+- **Description:** Enables recipient shelters or volunteers to discover active food donations near their location.
+- **Sample Response `200 OK`:** Returns array of nearby active food donations with calculated distance and transit ETA.
+
+#### `GET /api/matching/ngos`
+- **Access:** Public
+- **Description:** Returns directory of verified recipient NGOs, locations, contacts, and capacity.
+
+---
+
+### 3.8 Pickup Deadline Warnings & Impact Projection (Member 4)
+
+#### `GET /api/donations/warnings/expiring-soon`
+- **Access:** Public
+- **Query Params:** `hours` (threshold in hours, default: `5`)
+- **Description:** Returns perishable food listings requiring urgent collection before expiry.
+- **Sample Response `200 OK`:**
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": [
+    {
+      "foodId": "food_001",
+      "foodName": "Fresh Vegetable Curry & Rice",
+      "pickupDeadline": "2026-11-13T12:30:00.000Z",
+      "urgencyTier": "CRITICAL",
+      "timeRemainingFormatted": "1h 28m remaining",
+      "warningBadge": "CRITICAL WARNING",
+      "deadlineAnalysis": {
+        "urgencyTier": "CRITICAL",
+        "hoursRemaining": 1.5,
+        "minutesRemaining": 88,
+        "isExpired": false,
+        "priorityScore": 95,
+        "warningMessage": "CRITICAL: Only 1h 28m remaining! Spoilage imminent. Dispatch immediate volunteer/NGO pickup."
+      }
+    }
+  ]
+}
+```
+
+#### `GET /api/stats/leaderboard`
+- **Access:** Public
+- **Description:** Community recognition leaderboard ranking top food donors and recipient impact.
+
+#### `POST /api/stats/calculate`
+- **Access:** Public
+- **Body:** `{ "mealsSaved": 500 }` or `{ "kgFood": 210 }`
+- **Description:** Computes dynamic environmental savings projections (CO2e, embedded water, economic value) based on EPA WARM models.

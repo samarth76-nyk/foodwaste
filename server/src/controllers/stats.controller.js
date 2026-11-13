@@ -4,9 +4,9 @@ import { statsService } from '../services/stats.service.js';
 
 /**
  * ==============================================================================
- * STATISTICS & ANALYTICS CONTROLLER (INTEGRATION PLACEHOLDERS)
+ * IMPACT STATISTICS & ANALYTICS CONTROLLER
  * ==============================================================================
- * Responsible Teammate: Teammate 3 (Food Donation, Requests & Admin Functionality)
+ * Member 4 - Smart Features & Integration
  */
 
 export const getOverviewStats = asyncHandler(async (req, res) => {
@@ -24,10 +24,24 @@ export const getCategoryBreakdown = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, breakdown, 'Food category distribution retrieved');
 });
 
+export const getLeaderboard = asyncHandler(async (req, res) => {
+  const leaderboard = await statsService.getLeaderboard();
+  return ApiResponse.success(res, leaderboard, 'Community impact leaderboard retrieved');
+});
+
+export const calculateCustomImpact = asyncHandler(async (req, res) => {
+  const { mealsSaved, kgFood } = req.body;
+  const targetMeals = mealsSaved || (kgFood ? Math.round(kgFood / 0.42) : 100);
+  const calculation = await statsService.getImpactMetrics({ mealsSaved: targetMeals });
+  return ApiResponse.success(res, calculation, 'Custom impact projection calculated');
+});
+
 export const statsController = {
   getOverviewStats,
   getImpactMetrics,
-  getCategoryBreakdown
+  getCategoryBreakdown,
+  getLeaderboard,
+  calculateCustomImpact
 };
 
 export default statsController;

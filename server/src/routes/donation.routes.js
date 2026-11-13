@@ -12,20 +12,28 @@ const router = Router();
 
 /**
  * ==============================================================================
- * FOOD DONATIONS ROUTES (TEAMMATE 3 INTEGRATION POINT)
+ * FOOD DONATIONS ROUTES
+ * Smart Features & Integration (Member 4)
  * ==============================================================================
  */
 
 /**
  * @route   GET /api/donations
- * @desc    Get all food donations (with optional filters: category, status, city)
+ * @desc    Get all food donations (with optional filters: category, status, city, urgency)
  * @access  Public
  */
 router.get('/', donationController.getAllDonations);
 
 /**
+ * @route   GET /api/donations/warnings/expiring-soon
+ * @desc    Member 4: Pickup deadline warnings - Get listings expiring within X hours
+ * @access  Public
+ */
+router.get('/warnings/expiring-soon', donationController.getExpiringSoonDonations);
+
+/**
  * @route   GET /api/donations/:foodId
- * @desc    Get specific food donation by foodId
+ * @desc    Get specific food donation by foodId (enriched with deadlineAnalysis)
  * @access  Public
  */
 router.get('/:foodId', donationController.getDonationById);
