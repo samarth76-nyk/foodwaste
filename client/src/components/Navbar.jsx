@@ -21,7 +21,8 @@ export default function Navbar({
     { id: 'donor', label: '👨‍🍳 Donor Portal' },
     { id: 'receiver', label: '📦 Receiver Portal' },
     { id: 'matching', label: '📍 NGO Matching' },
-    { id: 'impact', label: '📊 Impact & Stats' }
+    { id: 'impact', label: '📊 Impact & Stats' },
+    { id: 'workflow', label: '⚡ Workflow' }
   ];
 
   const handleNavClick = (id) => {

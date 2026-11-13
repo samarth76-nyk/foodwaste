@@ -4,6 +4,7 @@
  * ==============================================================================
  * Integration:
  * - Member 2 (Samarth): Database aggregation from Firestore collections (donations, requests, users).
+ * - Member 3 (Shreya): Core workflow statistics & live metric tracking.
  * - Member 4: Environmental models (EPA WARM, FAO), equivalency calculations, category breakdown, leaderboard.
  * ==============================================================================
  */
@@ -41,7 +42,7 @@ export const statsService = {
       // Fallback
     }
 
-    const activeDonations = donations.filter((d) => d.status === FOOD_STATUS.AVAILABLE).length;
+    const activeDonations = donations.filter((d) => d.status === FOOD_STATUS.AVAILABLE || d.status === 'AVAILABLE').length;
     const completedDistributions = requests.filter(
       (r) => r.requestStatus === REQUEST_STATUS.COLLECTED || r.requestStatus === REQUEST_STATUS.APPROVED
     ).length;

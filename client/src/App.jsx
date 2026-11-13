@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from './api/apiClient';
 import API_ENDPOINTS from './api/endpoints';
-import { USER_ROLE } from './contracts/models';
+import { USER_ROLE, FOOD_CATEGORY, FOOD_STATUS, REQUEST_STATUS } from './contracts/models';
 
 // Component imports (Member 1 - Tanisha)
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import RequestModal from './components/RequestModal';
 import DonationModal from './components/DonationModal';
+
+// Workflow import (Member 3 - Shreya)
+import DonationWorkflow from './components/DonationWorkflow';
 
 // Page imports (Member 1 - Tanisha)
 import HomePage from './pages/HomePage';
@@ -22,9 +25,11 @@ import ImpactPage from './pages/ImpactPage';
  * SHAREBITE - MAIN FRONTEND APPLICATION
  * ==============================================================================
  * Designed & Built by: Tanisha (Member 1 – Frontend & UI)
- * Integrated with:
- * - Member 2 (Samarth): Firebase / Persistent Firestore Database Backend
- * - Member 4 (Thanush): Proximity Matching, Deadline Warnings & Impact Analytics
+ * Integrated Features:
+ * - Member 1 (Tanisha): Responsive Navigation, Homepage, Food Cards, Donor & Receiver Dashboards.
+ * - Member 2 (Samarth): Persistent Firebase/Firestore Database Storage & Retrieval, Food Donation CRUD.
+ * - Member 3 (Shreya): Complete Donation Workflow (Food Upload, Request Food, Accept/Reject, Lifecycle).
+ * - Member 4 (Thanush): Proximity Matching (Haversine Algorithm), Pickup Deadline Warnings & Impact Analytics.
  * ==============================================================================
  */
 export default function App() {
@@ -283,6 +288,12 @@ export default function App() {
             onRequestClick={(food) => setRequestModalFood(food)}
             onOpenDonationModal={() => setShowDonationModal(true)}
           />
+        )}
+
+        {activePage === 'workflow' && (
+          <div style={{ marginTop: '10px' }}>
+            <DonationWorkflow />
+          </div>
         )}
 
         {activePage === 'donor' && (

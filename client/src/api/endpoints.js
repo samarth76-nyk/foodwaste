@@ -31,6 +31,8 @@ export const API_ENDPOINTS = {
     GET_BY_ID: (requestId) => `/requests/${requestId}`,
     CREATE: '/requests',
     UPDATE_STATUS: (requestId) => `/requests/${requestId}/status`,
+    ACCEPT: (requestId) => `/requests/${requestId}/accept`,
+    REJECT: (requestId) => `/requests/${requestId}/reject`,
     BY_USER: (receiverId) => `/requests/user/${receiverId}`
   },
 

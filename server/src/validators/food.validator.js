@@ -35,7 +35,10 @@ export const createFoodSchema = z.object({
 export const updateFoodSchema = createFoodSchema.partial();
 
 export const updateFoodStatusSchema = z.object({
-  status: z.nativeEnum(FOOD_STATUS, {
-    errorMap: () => ({ message: `Status must be one of: ${Object.values(FOOD_STATUS).join(', ')}` })
-  })
+  status: z.preprocess(
+    (val) => (typeof val === 'string' ? val.toUpperCase() : val),
+    z.nativeEnum(FOOD_STATUS, {
+      errorMap: () => ({ message: `Status must be one of: ${Object.values(FOOD_STATUS).join(', ')}` })
+    })
+  )
 });
