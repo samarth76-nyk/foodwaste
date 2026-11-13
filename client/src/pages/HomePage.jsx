@@ -14,8 +14,9 @@ export default function HomePage({
   onOpenDonationModal
 }) {
   // Urgent food listings expiring soonest
-  const urgentListings = donations
+  const urgentListings = [...donations]
     .filter((d) => d.status === 'AVAILABLE')
+    .sort((a, b) => new Date(a.pickupDeadline || 0) - new Date(b.pickupDeadline || 0))
     .slice(0, 3);
 
   return (

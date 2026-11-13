@@ -20,9 +20,16 @@ export default function ReceiverDashboard({
   const approvedCount = requests.filter((r) => r.requestStatus === 'APPROVED').length;
   const collectedCount = requests.filter((r) => r.requestStatus === 'COLLECTED').length;
 
+  // Helper to parse numeric requested portion count
+  const parseQty = (q) => {
+    if (typeof q === 'number') return q > 0 ? q : 0;
+    const match = String(q || '').match(/^([\d.]+)/);
+    return match ? parseFloat(match[1]) || 0 : 0;
+  };
+
   const totalMealsClaimed = requests
     .filter((r) => r.requestStatus === 'APPROVED' || r.requestStatus === 'COLLECTED')
-    .reduce((sum, r) => sum + (Number(r.requestedQuantity) || 0), 0);
+    .reduce((sum, r) => sum + parseQty(r.requestedQuantity), 0);
 
   const availableDonations = donations.filter((d) => d.status === 'AVAILABLE').slice(0, 3);
 
@@ -158,7 +165,9 @@ export default function ReceiverDashboard({
                       <div style={{ fontSize: '11px', color: '#94a3b8' }}>Req: {req.requestId}</div>
                     </td>
                     <td style={{ padding: '14px 18px', fontWeight: 700, color: '#0284c7' }}>
-                      {req.requestedQuantity} portions
+                      {String(req.requestedQuantity || 0).toLowerCase().includes('portion') 
+                        ? req.requestedQuantity 
+                        : `${req.requestedQuantity || 0} portions`}
                     </td>
                     <td style={{ padding: '14px 18px', color: '#64748b', fontSize: '12px' }}>
                       {req.notes || 'Standard pickup'}

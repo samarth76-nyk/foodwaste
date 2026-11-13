@@ -18,10 +18,17 @@ export default function DonorDashboard({
 }) {
   const [activeSubTab, setActiveSubTab] = useState('listings');
 
+  // Helper to parse numeric portion count
+  const parseQty = (q) => {
+    if (typeof q === 'number') return q > 0 ? q : 0;
+    const match = String(q || '').match(/^([\d.]+)/);
+    return match ? parseFloat(match[1]) || 0 : 0;
+  };
+
   // Compute donor statistics
   const totalDonationsCount = donations.length;
   const activeDonationsCount = donations.filter((d) => d.status === 'AVAILABLE').length;
-  const totalPortions = donations.reduce((sum, d) => sum + (Number(d.quantity) || 0), 0);
+  const totalPortions = donations.reduce((sum, d) => sum + parseQty(d.quantity), 0);
   const pendingRequests = requests.filter((r) => r.requestStatus === 'PENDING');
   const approvedRequests = requests.filter((r) => r.requestStatus === 'APPROVED');
 
@@ -199,7 +206,7 @@ export default function DonorDashboard({
                         {food.category}
                       </td>
                       <td style={{ padding: '14px 18px', fontWeight: 700, color: '#059669' }}>
-                        {food.quantity} portions
+                        {String(food.quantity || 0).toLowerCase().includes('portion') ? food.quantity : `${food.quantity || 0} portions`}
                       </td>
                       <td style={{ padding: '14px 18px', color: '#64748b', fontSize: '12px' }}>
                         {food.location?.city || 'Local'}

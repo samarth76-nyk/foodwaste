@@ -107,7 +107,9 @@ export default function FoodCard({
               whiteSpace: 'nowrap'
             }}
           >
-            {food.quantity} portions
+            {String(food.quantity || 0).toLowerCase().includes('portion') 
+              ? food.quantity 
+              : `${food.quantity || 0} portions`}
           </span>
         </div>
 
