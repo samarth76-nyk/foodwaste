@@ -6,7 +6,6 @@ import { adminService } from '../services/admin.service.js';
  * ==============================================================================
  * ADMIN DASHBOARD CONTROLLER (INTEGRATION PLACEHOLDERS)
  * ==============================================================================
- * Responsible Teammate: Teammate 3 (Food Donation, Requests & Admin Functionality)
  */
 
 export const getAllUsers = asyncHandler(async (req, res) => {

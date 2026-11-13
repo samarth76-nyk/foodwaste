@@ -4,7 +4,6 @@ import API_ENDPOINTS from '../api/endpoints';
 
 /**
  * RequestModal Component
- * Designed by Tanisha (Member 1 - Frontend & UI)
  * Modal popup allowing receivers to select portion quantities, add pickup notes, and submit claims.
  */
 export default function RequestModal({

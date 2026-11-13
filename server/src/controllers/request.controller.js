@@ -7,8 +7,6 @@ import { requestService } from '../services/request.service.js';
  * ==============================================================================
  * FOOD REQUESTS CONTROLLER
  * ==============================================================================
- * Responsible Teammate: Teammate 3 / Shreya (Food Donation, Requests & Admin)
- * ==============================================================================
  */
 
 export const getAllRequests = asyncHandler(async (req, res) => {

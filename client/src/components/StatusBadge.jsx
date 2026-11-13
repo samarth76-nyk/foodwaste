@@ -2,7 +2,6 @@ import React from 'react';
 
 /**
  * StatusBadge Component
- * Designed by Tanisha (Member 1 - Frontend & UI)
  * Uniform color-coded pill for Food Status, Request Status, and Urgency Tiers
  */
 export default function StatusBadge({ status, size = 'md' }) {
@@ -27,7 +26,7 @@ export default function StatusBadge({ status, size = 'md' }) {
       case 'CLAIMED':
         return { bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe', icon: '🤝', label: 'Claimed' };
 
-      // Urgency Tiers (Member 4 Integration)
+      // Urgency Tiers
       case 'CRITICAL':
         return { bg: '#fef2f2', text: '#991b1b', border: '#fecaca', icon: '🚨', label: 'Critical < 2h' };
       case 'EXPIRING_SOON':

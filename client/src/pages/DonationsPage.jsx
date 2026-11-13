@@ -4,7 +4,6 @@ import { FOOD_CATEGORY } from '../contracts/models';
 
 /**
  * DonationsPage Component
- * Designed by Tanisha (Member 1 - Frontend & UI)
  * Marketplace to browse, filter, search, and claim surplus food donations.
  */
 export default function DonationsPage({

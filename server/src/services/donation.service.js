@@ -2,10 +2,10 @@
  * ==============================================================================
  * SHAREBITE - FOOD DONATION DATABASE & CORE FUNCTIONALITY SERVICE
  * ==============================================================================
- * Integration:
- * - Member 2 (Samarth): Persistent Firestore/Local JSON storage, audit logging
- * - Member 3 (Shreya): Complete donation workflow, food upload, portion deduction, status lifecycle
- * - Member 4: Real-time pickup deadline warnings, urgency ranking
+ * Features:
+ * - Persistent Firestore/Local JSON storage, audit logging
+ * - Complete donation workflow, food upload, portion deduction, status lifecycle
+ * - Real-time pickup deadline warnings, urgency ranking
  * ==============================================================================
  */
 
@@ -137,7 +137,7 @@ export const donationService = {
   },
 
   /**
-   * Create and persist a new food donation listing in the database (Member 3 Core Functionality)
+   * Create and persist a new food donation listing in the database
    * @param {Object} donationData
    * @returns {Promise<Object>} Created donation document
    */
@@ -296,7 +296,7 @@ export const donationService = {
   },
 
   /**
-   * Deduct quantity portions when a request is approved (Member 3 Core Functionality)
+   * Deduct quantity portions when a request is approved
    * @param {string} foodId
    * @param {number} requestedQty
    * @returns {Promise<Object>}

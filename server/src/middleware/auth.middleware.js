@@ -2,7 +2,6 @@
  * ==============================================================================
  * SHAREBITE - AUTHENTICATION & AUTHORIZATION MIDDLEWARE
  * ==============================================================================
- * Responsible Teammate: Samarth (Member 2 – Backend & Database)
  *
  * Implements:
  * 1. Bearer token extraction and validation
@@ -28,8 +27,8 @@ export const authenticate = async (req, res, next) => {
       if (env.MOCK_AUTH_ENABLED) {
         req.user = {
           userId: 'usr_admin',
-          name: 'Samarth (System Admin)',
-          email: 'samarth@sharebite.org',
+          name: 'System Admin',
+          email: 'admin@sharebite.org',
           role: 'ADMIN'
         };
         return next();
@@ -61,7 +60,7 @@ export const authenticate = async (req, res, next) => {
       userId: decoded.uid || decoded.userId || 'usr_admin',
       email: decoded.email || userProfile?.email || 'user@sharebite.org',
       role: userProfile?.role || decoded.role || 'DONOR',
-      name: userProfile?.name || decoded.name || 'ShareBite Member'
+      name: userProfile?.name || decoded.name || 'ShareBite User'
     };
 
     next();

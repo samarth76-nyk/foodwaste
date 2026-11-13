@@ -3,7 +3,6 @@ import FoodCard from '../components/FoodCard';
 
 /**
  * HomePage Component
- * Designed by Tanisha (Member 1 - Frontend & UI)
  * Features Hero section, live impact metrics ticker, how it works, and urgent listings preview.
  */
 export default function HomePage({

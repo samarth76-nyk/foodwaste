@@ -6,7 +6,7 @@
 export const API_ENDPOINTS = {
   HEALTH: '/health',
 
-  // Authentication (Teammate 2)
+  // Authentication
   AUTH: {
     REGISTER: '/auth/register',
     LOGIN: '/auth/login',
@@ -14,7 +14,7 @@ export const API_ENDPOINTS = {
     VERIFY_TOKEN: '/auth/verify-token'
   },
 
-  // Food Donations (Teammate 3 + Member 4 Deadline Warnings)
+  // Food Donations & Expiration Warnings
   DONATIONS: {
     LIST: '/donations',
     GET_BY_ID: (foodId) => `/donations/${foodId}`,
@@ -25,7 +25,7 @@ export const API_ENDPOINTS = {
     DELETE: (foodId) => `/donations/${foodId}`
   },
 
-  // Food Requests (Teammate 3)
+  // Food Requests
   REQUESTS: {
     LIST: '/requests',
     GET_BY_ID: (requestId) => `/requests/${requestId}`,
@@ -36,14 +36,14 @@ export const API_ENDPOINTS = {
     BY_USER: (receiverId) => `/requests/user/${receiverId}`
   },
 
-  // Smart NGO Matching (Member 4)
+  // Geospatial NGO Matching
   MATCHING: {
     NEARBY_NGOS: (foodId, radius = 20) => `/matching/donations/${foodId}/ngos?radius=${radius}`,
     NEARBY_DONATIONS: (lat, lng, radius = 15) => `/matching/nearby-donations?lat=${lat}&lng=${lng}&radius=${radius}`,
     ALL_NGOS: '/matching/ngos'
   },
 
-  // Admin Dashboard (Teammate 3)
+  // Admin Dashboard
   ADMIN: {
     USERS: '/admin/users',
     UPDATE_ROLE: (userId) => `/admin/users/${userId}/role`,
@@ -51,7 +51,7 @@ export const API_ENDPOINTS = {
     REPORTS: '/admin/reports'
   },
 
-  // Statistics & Impact Analytics (Member 4)
+  // Statistics & Impact Analytics
   STATS: {
     OVERVIEW: '/stats/overview',
     IMPACT: '/stats/impact',

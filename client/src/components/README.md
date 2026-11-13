@@ -1,8 +1,6 @@
 # Frontend Components Directory
 
-> **Assigned to: Teammate 1 (Frontend & UI)**
-
-This directory is reserved exclusively for Teammate 1 to build reusable UI components.
+This directory contains reusable UI components for the ShareBite frontend application.
 
 ## Recommended Components to Create:
 - `Navbar.jsx` – Navigation bar with user role badges and links.

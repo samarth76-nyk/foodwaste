@@ -3,16 +3,16 @@ import apiClient from './api/apiClient';
 import API_ENDPOINTS from './api/endpoints';
 import { USER_ROLE, FOOD_CATEGORY, FOOD_STATUS, REQUEST_STATUS } from './contracts/models';
 
-// Component imports (Member 1 - Tanisha)
+// UI Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import RequestModal from './components/RequestModal';
 import DonationModal from './components/DonationModal';
 
-// Workflow import (Member 3 - Shreya)
+// Workflow Component
 import DonationWorkflow from './components/DonationWorkflow';
 
-// Page imports (Member 1 - Tanisha)
+// Page Views
 import HomePage from './pages/HomePage';
 import DonationsPage from './pages/DonationsPage';
 import DonorDashboard from './pages/DonorDashboard';
@@ -24,12 +24,11 @@ import ImpactPage from './pages/ImpactPage';
  * ==============================================================================
  * SHAREBITE - MAIN FRONTEND APPLICATION
  * ==============================================================================
- * Designed & Built by: Tanisha (Member 1 – Frontend & UI)
- * Integrated Features:
- * - Member 1 (Tanisha): Responsive Navigation, Homepage, Food Cards, Donor & Receiver Dashboards.
- * - Member 2 (Samarth): Persistent Firebase/Firestore Database Storage & Retrieval, Food Donation CRUD.
- * - Member 3 (Shreya): Complete Donation Workflow (Food Upload, Request Food, Accept/Reject, Lifecycle).
- * - Member 4 (Thanush): Proximity Matching (Haversine Algorithm), Pickup Deadline Warnings & Impact Analytics.
+ * Platform Features:
+ * - Responsive Navigation, Homepage, Food Cards, Donor & Receiver Dashboards
+ * - Persistent Firestore Database Storage & Retrieval, Food Donation CRUD
+ * - Complete Donation Workflow (Food Upload, Request Food, Accept/Reject, Lifecycle)
+ * - Proximity Matching (Haversine Algorithm), Pickup Deadline Warnings & Impact Analytics
  * ==============================================================================
  */
 export default function App() {
@@ -254,7 +253,7 @@ export default function App() {
       <div style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', padding: '8px 0', fontSize: '12px', color: '#64748b' }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <div>
-            Active Persona: <strong style={{ color: '#0f172a' }}>{currentRole}</strong> &bull; UI Designer: <strong style={{ color: '#059669' }}>Tanisha (Member 1)</strong>
+            Active Persona: <strong style={{ color: '#0f172a' }}>{currentRole}</strong>
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <span>Database: <strong style={{ color: healthStatus?.ok ? '#059669' : '#dc2626' }}>{healthStatus?.data?.services?.database || 'Persistent Local Firestore'}</strong></span>

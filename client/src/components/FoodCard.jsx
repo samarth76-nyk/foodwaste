@@ -23,7 +23,6 @@ const CATEGORY_COLORS = {
 
 /**
  * FoodCard Component
- * Designed by Tanisha (Member 1 - Frontend & UI)
  * Responsive card displaying food details, deadline urgency, allergens, and claim trigger.
  */
 export default function FoodCard({

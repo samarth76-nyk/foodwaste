@@ -3,7 +3,6 @@ import StatusBadge from '../components/StatusBadge';
 
 /**
  * DonorDashboard Component
- * Designed by Tanisha (Member 1 - Frontend & UI)
  * Dedicated portal for commercial donors (restaurants, bakeries, caterers) to manage
  * listings, review incoming receiver claims, and approve hand-offs.
  */

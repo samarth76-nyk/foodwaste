@@ -2,7 +2,6 @@
  * ==============================================================================
  * SHAREBITE - AUTHENTICATION & USER PROFILE SERVICE
  * ==============================================================================
- * Responsible Teammate: Samarth (Member 2 – Backend & Database)
  *
  * Implements:
  * 1. User registration with persistent storage in Firestore 'users' collection

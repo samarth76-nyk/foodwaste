@@ -4,7 +4,6 @@ import FoodCard from '../components/FoodCard';
 
 /**
  * ReceiverDashboard Component
- * Designed by Tanisha (Member 1 - Frontend & UI)
  * Dedicated portal for community shelters, NGOs, and food banks to track submitted claims,
  * confirm collections, and rapidly request available surplus food.
  */

@@ -1,6 +1,6 @@
 # ShareBite – Firebase Firestore Database Schema
 
-This document details the database architecture designed for **Teammate 2 (Firebase and Database)** to implement in Google Cloud Firestore.
+This document details the database architecture for implementation in Google Cloud Firestore.
 
 ---
 
@@ -136,7 +136,7 @@ For efficient queries and filtering, configure the following composite indexes i
 
 ## 4. Firestore Security Rules Blueprint
 
-Teammate 2 can paste this baseline into `firestore.rules`:
+Use this baseline configuration in `firestore.rules`:
 
 ```javascript
 rules_version = '2';

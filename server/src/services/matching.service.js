@@ -2,7 +2,6 @@
  * ==============================================================================
  * SHAREBITE - NEARBY NGO MATCHING SERVICE
  * ==============================================================================
- * Member 4 - Smart Features & Integration
  * 
  * Implements proximity-based algorithmic matching between perishable food
  * donations and registered recipient NGOs / shelters using Haversine distance.

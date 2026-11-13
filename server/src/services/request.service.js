@@ -2,9 +2,9 @@
  * ==============================================================================
  * SHAREBITE - RECEIVER REQUEST & DONATION WORKFLOW SERVICE
  * ==============================================================================
- * Integration:
- * - Member 2 (Samarth): Database persistence, audit logging in Firestore
- * - Member 3 (Shreya): Complete donation workflow, request food, accept/reject, status transitions
+ * Features:
+ * - Database persistence, audit logging in Firestore
+ * - Complete donation workflow, request food, accept/reject, status transitions
  * ==============================================================================
  */
 
@@ -82,7 +82,7 @@ export const requestService = {
   },
 
   /**
-   * Create and store a receiver request in the database (Member 3 Core Functionality)
+   * Create and store a receiver request in the database
    * @param {Object} requestData
    * @param {Object} [userContext]
    * @returns {Promise<Object>} Created request document
@@ -192,7 +192,7 @@ export const requestService = {
 
   /**
    * Update request status (e.g. PENDING -> APPROVED / REJECTED -> COLLECTED)
-   * Enforces complete donation workflow state machine (Member 3 Core Functionality)
+   * Enforces complete donation workflow state machine
    * @param {string} requestId
    * @param {string} newStatus
    * @param {Object} [metadata]
@@ -298,7 +298,7 @@ export const requestService = {
   },
 
   /**
-   * Convenience method: Accept / Approve a food request (Member 3)
+   * Convenience method: Accept / Approve a food request
    * @param {string} requestId
    * @param {Object} [userContext]
    * @returns {Promise<Object>}
@@ -308,7 +308,7 @@ export const requestService = {
   },
 
   /**
-   * Convenience method: Reject a food request (Member 3)
+   * Convenience method: Reject a food request
    * @param {string} requestId
    * @param {string} [rejectionReason]
    * @param {Object} [userContext]
@@ -324,7 +324,7 @@ export const requestService = {
   },
 
   /**
-   * Convenience method: Mark an approved request as collected (Member 3)
+   * Convenience method: Mark an approved request as collected
    * @param {string} requestId
    * @param {Object} [userContext]
    * @returns {Promise<Object>}

@@ -107,7 +107,7 @@ Every endpoint returns a predictable, standardized envelope.
 
 ---
 
-### 3.2 Authentication (Teammate 2 Integration)
+### 3.2 Authentication
 
 #### `POST /api/auth/register`
 - **Access:** Public
@@ -143,7 +143,7 @@ Every endpoint returns a predictable, standardized envelope.
 
 ---
 
-### 3.3 Food Donations (Teammate 3 Integration)
+### 3.3 Food Donations
 
 #### `GET /api/donations`
 - **Access:** Public
@@ -196,7 +196,7 @@ Every endpoint returns a predictable, standardized envelope.
 
 ---
 
-### 3.4 Food Requests (Teammate 3 Integration)
+### 3.4 Food Requests
 
 #### `GET /api/requests`
 - **Access:** Private
@@ -231,7 +231,7 @@ Every endpoint returns a predictable, standardized envelope.
 
 ---
 
-### 3.5 Admin Dashboard (Teammate 3 Integration)
+### 3.5 Admin Dashboard
 *All admin routes require `role: ADMIN` in auth context.*
 
 #### `GET /api/admin/users`
@@ -253,7 +253,7 @@ Every endpoint returns a predictable, standardized envelope.
 
 ---
 
-### 3.6 Statistics & Impact (Teammate 3 Integration)
+### 3.6 Statistics & Impact
 
 #### `GET /api/stats/overview`
 - **Access:** Public
@@ -285,7 +285,7 @@ Every endpoint returns a predictable, standardized envelope.
 
 ---
 
-### 3.7 Nearby NGO Matching Engine (Member 4)
+### 3.7 Nearby NGO Matching Engine
 
 #### `GET /api/matching/donations/:foodId/ngos`
 - **Access:** Public
@@ -338,7 +338,7 @@ Every endpoint returns a predictable, standardized envelope.
 
 ---
 
-### 3.8 Pickup Deadline Warnings & Impact Projection (Member 4)
+### 3.8 Pickup Deadline Warnings & Impact Projection
 
 #### `GET /api/donations/warnings/expiring-soon`
 - **Access:** Public

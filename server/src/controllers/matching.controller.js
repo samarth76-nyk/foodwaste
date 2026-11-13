@@ -7,7 +7,6 @@ import { matchingService } from '../services/matching.service.js';
  * ==============================================================================
  * NEARBY NGO MATCHING CONTROLLER
  * ==============================================================================
- * Member 4 - Smart Features & Integration
  */
 
 export const getNearbyNGOsForDonation = asyncHandler(async (req, res) => {

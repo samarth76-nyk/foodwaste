@@ -3,7 +3,6 @@ import { USER_ROLE } from '../contracts/models';
 
 /**
  * Navbar Component
- * Designed by Tanisha (Member 1 - Frontend & UI)
  * Responsive top navigation bar with brand identity, page links, mobile menu, and user role switcher.
  */
 export default function Navbar({

@@ -13,7 +13,6 @@ const router = Router();
 /**
  * ==============================================================================
  * FOOD DONATIONS ROUTES
- * Smart Features & Integration (Member 4)
  * ==============================================================================
  */
 
@@ -26,7 +25,7 @@ router.get('/', donationController.getAllDonations);
 
 /**
  * @route   GET /api/donations/warnings/expiring-soon
- * @desc    Member 4: Pickup deadline warnings - Get listings expiring within X hours
+ * @desc    Pickup deadline warnings - Get listings expiring within X hours
  * @access  Public
  */
 router.get('/warnings/expiring-soon', donationController.getExpiringSoonDonations);

@@ -47,11 +47,11 @@ sharebite/
 │   │   ├── api/
 │   │   │   ├── apiClient.js              # Centralized Axios client with token interceptor
 │   │   │   └── endpoints.js              # Central API endpoint registry
-│   │   ├── components/                   # [Reserved for Teammate 1: Frontend & UI]
+│   │   ├── components/                   # Reusable UI components
 │   │   │   └── README.md
 │   │   ├── contracts/
 │   │   │   └── models.js                 # Shared frontend models & factories
-│   │   ├── pages/                        # [Reserved for Teammate 1: Frontend & UI]
+│   │   ├── pages/                        # Page-level route views
 │   │   │   └── README.md
 │   │   ├── App.jsx                       # Integration Status & Diagnostics Console
 │   │   ├── index.css                     # Base styling
@@ -119,16 +119,16 @@ sharebite/
 
 ---
 
-## 3. Team Collaboration Matrix
+## 3. Architecture Modules Overview
 
-Each teammate works in an isolated area to avoid git merge conflicts:
+ShareBite is organized into modular subsystems:
 
-| Teammate | Assigned Domain | Target Files |
+| Subsystem | Functional Scope | Primary Files |
 |---|---|---|
-| **THANUSH** | Architecture & Integration | Monorepo config, `server.js`, `app.js`, `routes/index.js`, `docs/*` |
-| **TANISHA** | Frontend & UI | `client/src/pages/*`, `client/src/components/*`, `client/src/App.jsx` |
-| **SAMARTH** | Firebase & Database | `server/src/config/firebase.js`, `server/src/middleware/auth.middleware.js`, `server/src/services/auth.service.js` |
-| **SHREYA** | Donations, Requests & Admin | `server/src/services/donation.service.js`, `server/src/services/request.service.js`, `server/src/services/admin.service.js` |
+| **Frontend & UI** | Responsive Views & Component System | `client/src/pages/*`, `client/src/components/*`, `client/src/App.jsx` |
+| **Authentication & Database** | Firebase & Persistent Firestore Adapter | `server/src/config/firebase.js`, `server/src/middleware/auth.middleware.js`, `server/src/services/auth.service.js` |
+| **Donations & Requests** | Uploads, Claim Workflow & Inventory Tracking | `server/src/services/donation.service.js`, `server/src/services/request.service.js`, `server/src/services/admin.service.js` |
+| **Smart Logistics & Analytics** | Haversine Proximity & EPA WARM Models | `server/src/services/matching.service.js`, `server/src/services/stats.service.js`, `server/src/utils/` |
 
 ---
 

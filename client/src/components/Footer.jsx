@@ -2,8 +2,7 @@ import React from 'react';
 
 /**
  * Footer Component
- * Designed by Tanisha (Member 1 - Frontend & UI)
- * Responsive footer displaying project information, quick navigation, and team credits.
+ * Responsive footer displaying project information, quick navigation, and platform architecture.
  */
 export default function Footer({ onNavigate }) {
   return (
@@ -68,16 +67,16 @@ export default function Footer({ onNavigate }) {
             </ul>
           </div>
 
-          {/* Team Collaboration Credits */}
+          {/* Platform Architecture */}
           <div>
             <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '14px' }}>
-              Project Team Matrix
+              Platform Architecture
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: '#475569' }}>
-              <div><strong>Tanisha (You):</strong> Frontend & UI (Member 1)</div>
-              <div><strong>Samarth:</strong> Firebase & Database (Member 2)</div>
-              <div><strong>Shreya:</strong> Donations, Requests & Admin (Member 3)</div>
-              <div><strong>Thanush:</strong> Architecture & Proximity (Member 4)</div>
+              <div>&bull; Real-time Surplus Food Marketplace</div>
+              <div>&bull; Automated Inventory & Portion Deduction</div>
+              <div>&bull; Haversine NGO Proximity Matching</div>
+              <div>&bull; EPA WARM Environmental Analytics</div>
             </div>
           </div>
         </div>

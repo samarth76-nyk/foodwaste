@@ -2,7 +2,6 @@
  * ==============================================================================
  * SHAREBITE - ADMIN SERVICE (DATABASE INTEGRATED)
  * ==============================================================================
- * Responsible: Backend & Database (Samarth)
  * Handles user management and audit trails in Firestore.
  * ==============================================================================
  */

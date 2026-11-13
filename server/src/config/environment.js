@@ -21,7 +21,7 @@ export const env = {
     ? process.env.CLIENT_ORIGIN.split(',').map((origin) => origin.trim())
     : ['http://localhost:5173', 'http://localhost:3000'],
   
-  // Firebase configuration parameters (Assigned to Teammate 2)
+  // Firebase configuration parameters
   FIREBASE: {
     SERVICE_ACCOUNT_PATH: process.env.FIREBASE_SERVICE_ACCOUNT_PATH || '',
     PROJECT_ID: process.env.FIREBASE_PROJECT_ID || '',
