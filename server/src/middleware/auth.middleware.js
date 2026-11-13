@@ -2,25 +2,19 @@
  * ==============================================================================
  * SHAREBITE - AUTHENTICATION & AUTHORIZATION MIDDLEWARE
  * ==============================================================================
- * RESPONSIBLE TEAMMATE: Teammate 2 (Firebase and Database)
- * 
- * INSTRUCTIONS FOR TEAMMATE 2:
- * 1. Read Bearer token from req.headers.authorization
- * 2. Verify token via Firebase Admin Auth:
- *      const decodedToken = await auth.verifyIdToken(token);
- * 3. Fetch user record or claims to attach user details:
- *      req.user = {
- *        userId: decodedToken.uid,
- *        email: decodedToken.email,
- *        role: decodedToken.role || 'RECEIVER'
- *      };
- * 4. In case of invalid/expired token, forward ApiError.unauthorized(...)
+ * Responsible Teammate: Samarth (Member 2 – Backend & Database)
+ *
+ * Implements:
+ * 1. Bearer token extraction and validation
+ * 2. Firebase Admin ID Token verification or Local Auth Token resolution
+ * 3. User profile lookup and hydration onto req.user
+ * 4. Role-based Access Control (RBAC) middleware
  * ==============================================================================
  */
 
 import { ApiError } from '../utils/ApiError.js';
 import { env } from '../config/environment.js';
-import { auth, isFirebaseConfigured } from '../config/firebase.js';
+import { auth, db } from '../config/firebase.js';
 
 /**
  * Verifies Bearer Token from HTTP Authorization Header
@@ -33,10 +27,10 @@ export const authenticate = async (req, res, next) => {
       // In development mode with mock auth enabled, attach default mock user
       if (env.MOCK_AUTH_ENABLED) {
         req.user = {
-          userId: 'dev-user-001',
-          name: 'Developer Mode User',
-          email: 'dev@sharebite.local',
-          role: 'ADMIN' // Default to admin in dev mode for easy testing
+          userId: 'usr_admin',
+          name: 'Samarth (System Admin)',
+          email: 'samarth@sharebite.org',
+          role: 'ADMIN'
         };
         return next();
       }
@@ -45,24 +39,31 @@ export const authenticate = async (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
 
-    // Teammate 2 Integration Point:
-    if (isFirebaseConfigured) {
-      const decoded = await auth.verifyIdToken(token);
-      req.user = {
-        userId: decoded.uid,
-        email: decoded.email,
-        role: decoded.role || 'RECEIVER'
-      };
-      return next();
+    if (!token) {
+      return next(ApiError.unauthorized('Missing token in authorization header'));
     }
 
-    // Mock fallback when token is present but Firebase credentials are not yet configured
+    // Verify token using Firebase Auth or Local Auth Engine
+    const decoded = await auth.verifyIdToken(token);
+
+    // Look up latest user profile in Firestore
+    let userProfile = null;
+    try {
+      const userDoc = await db.collection('users').doc(decoded.uid || decoded.userId).get();
+      if (userDoc.exists) {
+        userProfile = userDoc.data();
+      }
+    } catch (e) {
+      // Ignore if user profile lookup fails, fall back to decoded token
+    }
+
     req.user = {
-      userId: 'mock-user-123',
-      name: 'Authenticated Volunteer',
-      email: 'volunteer@sharebite.local',
-      role: 'VOLUNTEER'
+      userId: decoded.uid || decoded.userId || 'usr_admin',
+      email: decoded.email || userProfile?.email || 'user@sharebite.org',
+      role: userProfile?.role || decoded.role || 'DONOR',
+      name: userProfile?.name || decoded.name || 'ShareBite Member'
     };
+
     next();
   } catch (error) {
     next(ApiError.unauthorized(`Authentication failed: ${error.message}`));

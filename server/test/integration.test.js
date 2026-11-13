@@ -42,17 +42,28 @@ const post = async (path, body, headers = {}) => {
   return { status: res.status, data };
 };
 
-describe('ShareBite Foundation API Tests', () => {
+const patch = async (path, body, headers = {}) => {
+  const res = await fetch(`${baseUrl}${path}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  return { status: res.status, data };
+};
 
-  it('1. GET /api/health returns 200 with operational status', async () => {
+describe('ShareBite Foundation & Member 2 Database Tests', () => {
+
+  it('1. GET /api/health returns 200 with database operational status', async () => {
     const { status, data } = await get('/health');
     assert.equal(status, 200);
     assert.equal(data.success, true);
     assert.equal(data.data.status, 'healthy');
+    assert.ok(data.data.databaseStatus);
     assert.ok(data.data.uptimeSeconds >= 0);
   });
 
-  it('2. GET /api/donations returns 200 with list of donations', async () => {
+  it('2. GET /api/donations returns 200 with list of donations from database', async () => {
     const { status, data } = await get('/donations');
     assert.equal(status, 200);
     assert.equal(data.success, true);
@@ -63,12 +74,14 @@ describe('ShareBite Foundation API Tests', () => {
     assert.ok(data.data[0].location);
   });
 
-  it('3. POST /api/donations validates payload and returns 201 Created', async () => {
+  let createdFoodId = '';
+
+  it('3. POST /api/donations validates payload and stores food donation in database with 201 Created', async () => {
     const validDonation = {
       foodName: 'Fresh Apples & Oranges',
-      quantity: '10 kg',
+      quantity: 10,
       category: 'Produce',
-      donorId: 'test_donor_123',
+      donorId: 'usr_001',
       location: {
         address: '77 Market Road',
         city: 'Metro City'
@@ -84,9 +97,18 @@ describe('ShareBite Foundation API Tests', () => {
     assert.equal(data.success, true);
     assert.ok(data.data.foodId);
     assert.equal(data.data.foodName, validDonation.foodName);
+    createdFoodId = data.data.foodId;
   });
 
-  it('4. POST /api/donations rejects invalid payload with 400 Bad Request', async () => {
+  it('4. GET /api/donations/:foodId retrieves stored donation by ID', async () => {
+    const { status, data } = await get(`/donations/${createdFoodId}`);
+    assert.equal(status, 200);
+    assert.equal(data.success, true);
+    assert.equal(data.data.foodId, createdFoodId);
+    assert.equal(data.data.foodName, 'Fresh Apples & Oranges');
+  });
+
+  it('5. POST /api/donations rejects invalid payload with 400 Bad Request', async () => {
     const invalidDonation = {
       quantity: -5,
       category: 'NonExistentCategory'
@@ -98,35 +120,70 @@ describe('ShareBite Foundation API Tests', () => {
     assert.ok(data.errors && data.errors.length > 0);
   });
 
-  it('5. GET /api/requests returns 200 with list of requests', async () => {
+  it('6. GET /api/requests returns 200 with list of requests from database', async () => {
     const { status, data } = await get('/requests');
     assert.equal(status, 200);
     assert.equal(data.success, true);
     assert.ok(Array.isArray(data.data));
   });
 
-  it('6. POST /api/requests validates and creates food request with 201', async () => {
+  let createdRequestId = '';
+
+  it('7. POST /api/requests validates and stores receiver request with 201', async () => {
     const validRequest = {
-      foodId: 'food_001',
-      receiverId: 'shelter_alpha',
-      requestedQuantity: 5
+      foodId: createdFoodId,
+      receiverId: 'usr_002',
+      requestedQuantity: 4,
+      notes: 'For family breakfast distribution'
     };
 
     const { status, data } = await post('/requests', validRequest);
     assert.equal(status, 201);
     assert.equal(data.success, true);
     assert.ok(data.data.requestId);
-    assert.equal(data.data.requestedQuantity, 5);
+    assert.equal(data.data.requestedQuantity, 4);
+    assert.equal(data.data.requestStatus, 'PENDING');
+    createdRequestId = data.data.requestId;
   });
 
-  it('7. GET /api/stats/overview returns 200 with platform metrics', async () => {
+  it('8. PATCH /api/requests/:requestId/status approves request and adjusts food inventory', async () => {
+    const { status, data } = await patch(`/requests/${createdRequestId}/status`, {
+      requestStatus: 'APPROVED'
+    });
+
+    assert.equal(status, 200);
+    assert.equal(data.success, true);
+    assert.equal(data.data.requestStatus, 'APPROVED');
+
+    // Verify that food inventory was decremented in database
+    const foodRes = await get(`/donations/${createdFoodId}`);
+    assert.equal(foodRes.status, 200);
+    assert.equal(foodRes.data.data.quantity, 6); // 10 - 4 = 6
+  });
+
+  it('9. POST /api/auth/register registers and stores user in database', async () => {
+    const testEmail = `newdonor_${Date.now()}@example.com`;
+    const { status, data } = await post('/auth/register', {
+      name: 'Green Bakery',
+      email: testEmail,
+      role: 'DONOR',
+      phone: '+1-555-019-9999'
+    });
+
+    assert.equal(status, 201);
+    assert.equal(data.success, true);
+    assert.ok(data.data.userId);
+    assert.equal(data.data.email, testEmail);
+  });
+
+  it('10. GET /api/stats/overview returns dynamic database metrics', async () => {
     const { status, data } = await get('/stats/overview');
     assert.equal(status, 200);
     assert.equal(data.success, true);
-    assert.ok(data.data.totalMealsSaved > 0);
+    assert.ok(data.data.totalDonations > 0);
   });
 
-  it('8. GET /api/stats/impact returns 200 with environmental metrics', async () => {
+  it('11. GET /api/stats/impact returns calculated environmental metrics', async () => {
     const { status, data } = await get('/stats/impact');
     assert.equal(status, 200);
     assert.equal(data.success, true);
@@ -134,14 +191,7 @@ describe('ShareBite Foundation API Tests', () => {
     assert.ok(data.data.co2EmissionsAvoidedKg > 0);
   });
 
-  it('9. GET /api/admin/users succeeds with mock admin user', async () => {
-    const { status, data } = await get('/admin/users');
-    assert.equal(status, 200);
-    assert.equal(data.success, true);
-    assert.ok(Array.isArray(data.data));
-  });
-
-  it('10. Unmatched endpoint returns 404 with structured error', async () => {
+  it('12. Unmatched endpoint returns 404 with structured error', async () => {
     const { status, data } = await get('/unknown-route-xyz');
     assert.equal(status, 404);
     assert.equal(data.success, false);

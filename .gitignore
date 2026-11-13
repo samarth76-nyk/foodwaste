@@ -22,6 +22,10 @@ dist/
 build/
 coverage/
 
+# Local database storage
+server/data/
+data/
+
 # Logs
 logs/
 *.log
