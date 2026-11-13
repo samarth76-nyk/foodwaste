@@ -54,6 +54,28 @@ router.patch(
 );
 
 /**
+ * @route   POST /api/requests/:requestId/accept
+ * @desc    Accept / Approve food request (Member 3 Core Functionality)
+ * @access  Private (Donor / Volunteer / Admin)
+ */
+router.post(
+  '/:requestId/accept',
+  authenticate,
+  requestController.acceptRequest
+);
+
+/**
+ * @route   POST /api/requests/:requestId/reject
+ * @desc    Reject food request (Member 3 Core Functionality)
+ * @access  Private (Donor / Volunteer / Admin)
+ */
+router.post(
+  '/:requestId/reject',
+  authenticate,
+  requestController.rejectRequest
+);
+
+/**
  * @route   GET /api/requests/user/:receiverId
  * @desc    Get request history for a specific receiver
  * @access  Private

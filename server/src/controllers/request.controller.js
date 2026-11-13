@@ -5,14 +5,15 @@ import { requestService } from '../services/request.service.js';
 
 /**
  * ==============================================================================
- * FOOD REQUESTS CONTROLLER (INTEGRATION PLACEHOLDERS)
+ * FOOD REQUESTS CONTROLLER
  * ==============================================================================
- * Responsible Teammate: Teammate 3 (Food Donation, Requests & Admin Functionality)
+ * Responsible Teammate: Teammate 3 / Shreya (Food Donation, Requests & Admin)
+ * ==============================================================================
  */
 
 export const getAllRequests = asyncHandler(async (req, res) => {
-  const { status, foodId, receiverId } = req.query;
-  const requests = await requestService.getAllRequests({ status, foodId, receiverId });
+  const { status, foodId, receiverId, donorId } = req.query;
+  const requests = await requestService.getAllRequests({ status, foodId, receiverId, donorId });
   return ApiResponse.success(res, requests, 'Food requests retrieved successfully', 200, {
     count: requests.length
   });
@@ -28,16 +29,34 @@ export const getRequestById = asyncHandler(async (req, res) => {
 });
 
 export const createRequest = asyncHandler(async (req, res) => {
-  // Teammate 3 Integration Point: Validate food availability and create request
-  const created = await requestService.createRequest(req.body);
+  // Validate food availability and create request
+  const created = await requestService.createRequest(req.body, req.user);
   return ApiResponse.created(res, created, 'Food request submitted successfully');
 });
 
 export const updateRequestStatus = asyncHandler(async (req, res) => {
   const { requestId } = req.params;
-  const { requestStatus } = req.body;
-  const updated = await requestService.updateRequestStatus(requestId, requestStatus);
-  return ApiResponse.success(res, updated, `Request status changed to ${requestStatus}`);
+  const { requestStatus, rejectionReason } = req.body;
+  const updated = await requestService.updateRequestStatus(
+    requestId,
+    requestStatus,
+    { rejectionReason },
+    req.user
+  );
+  return ApiResponse.success(res, updated, `Request status changed to ${updated.requestStatus}`);
+});
+
+export const acceptRequest = asyncHandler(async (req, res) => {
+  const { requestId } = req.params;
+  const updated = await requestService.acceptRequest(requestId, req.user);
+  return ApiResponse.success(res, updated, 'Food request approved successfully');
+});
+
+export const rejectRequest = asyncHandler(async (req, res) => {
+  const { requestId } = req.params;
+  const { rejectionReason } = req.body || {};
+  const updated = await requestService.rejectRequest(requestId, rejectionReason, req.user);
+  return ApiResponse.success(res, updated, 'Food request rejected successfully');
 });
 
 export const getRequestsByUser = asyncHandler(async (req, res) => {
@@ -51,6 +70,8 @@ export const requestController = {
   getRequestById,
   createRequest,
   updateRequestStatus,
+  acceptRequest,
+  rejectRequest,
   getRequestsByUser
 };
 

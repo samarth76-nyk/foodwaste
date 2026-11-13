@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from './api/apiClient';
 import API_ENDPOINTS from './api/endpoints';
+import DonationWorkflow from './components/DonationWorkflow';
 
 /**
  * ==============================================================================
@@ -17,7 +18,7 @@ import API_ENDPOINTS from './api/endpoints';
 export default function App() {
   const [healthStatus, setHealthStatus] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('donation-workflow');
   const [apiResult, setApiResult] = useState(null);
   const [testingEndpoint, setTestingEndpoint] = useState(false);
 
@@ -108,11 +109,17 @@ export default function App() {
       </header>
 
       {/* Navigation Tabs */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-        {['overview', 'endpoints-test', 'team-modules', 'data-contracts'].map((tab) => (
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        {[
+          { id: 'donation-workflow', label: '🍲 Donation Workflow (Member 3: Shreya)' },
+          { id: 'overview', label: 'System Overview' },
+          { id: 'endpoints-test', label: 'Endpoints Test' },
+          { id: 'team-modules', label: 'Team Modules' },
+          { id: 'data-contracts', label: 'Data Contracts' }
+        ].map((tab) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
             style={{
               padding: '10px 18px',
               borderRadius: '8px',
@@ -120,16 +127,18 @@ export default function App() {
               cursor: 'pointer',
               fontWeight: 600,
               fontSize: '13px',
-              textTransform: 'capitalize',
-              backgroundColor: activeTab === tab ? '#10b981' : '#ffffff',
-              color: activeTab === tab ? '#ffffff' : '#64748b',
-              boxShadow: activeTab === tab ? '0 2px 4px rgba(16,185,129,0.2)' : '0 1px 3px rgba(0,0,0,0.05)'
+              backgroundColor: activeTab === tab.id ? '#10b981' : '#ffffff',
+              color: activeTab === tab.id ? '#ffffff' : '#64748b',
+              boxShadow: activeTab === tab.id ? '0 2px 4px rgba(16,185,129,0.2)' : '0 1px 3px rgba(0,0,0,0.05)'
             }}
           >
-            {tab.replace('-', ' ')}
+            {tab.label}
           </button>
         ))}
       </div>
+
+      {/* Primary Tab: Member 3 Donation Workflow */}
+      {activeTab === 'donation-workflow' && <DonationWorkflow />}
 
       {/* Tab 1: Overview */}
       {activeTab === 'overview' && (
