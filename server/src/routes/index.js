@@ -5,6 +5,7 @@ import donationRoutes from './donation.routes.js';
 import requestRoutes from './request.routes.js';
 import adminRoutes from './admin.routes.js';
 import statsRoutes from './stats.routes.js';
+import matchingRoutes from './matching.routes.js';
 
 const apiRouter = Router();
 
@@ -18,13 +19,16 @@ const apiRouter = Router();
 // Core Health Check
 apiRouter.use('/health', healthRoutes);
 
-// Teammate 2 Integration
+// Authentication (Teammate 2)
 apiRouter.use('/auth', authRoutes);
 
-// Teammate 3 Integrations
+// Core Modules (Teammate 3)
 apiRouter.use('/donations', donationRoutes);
 apiRouter.use('/requests', requestRoutes);
 apiRouter.use('/admin', adminRoutes);
+
+// Member 4 - Smart Features & Integration
 apiRouter.use('/stats', statsRoutes);
+apiRouter.use('/matching', matchingRoutes);
 
 export default apiRouter;

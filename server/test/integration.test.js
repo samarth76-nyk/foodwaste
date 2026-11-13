@@ -1,5 +1,5 @@
 /**
- * ShareBite Backend Automated Foundation & Route Verification Test
+ * ShareBite Backend Automated Foundation & Smart Features Verification Test
  * Runs against the Express app directly using Node.js built-in test runner
  */
 
@@ -42,7 +42,7 @@ const post = async (path, body, headers = {}) => {
   return { status: res.status, data };
 };
 
-describe('ShareBite Foundation API Tests', () => {
+describe('ShareBite Full Integration & Smart Features Tests', () => {
 
   it('1. GET /api/health returns 200 with operational status', async () => {
     const { status, data } = await get('/health');
@@ -52,15 +52,15 @@ describe('ShareBite Foundation API Tests', () => {
     assert.ok(data.data.uptimeSeconds >= 0);
   });
 
-  it('2. GET /api/donations returns 200 with list of donations', async () => {
+  it('2. GET /api/donations returns 200 with list of donations enriched with deadline analysis', async () => {
     const { status, data } = await get('/donations');
     assert.equal(status, 200);
     assert.equal(data.success, true);
     assert.ok(Array.isArray(data.data));
     assert.ok(data.data.length >= 1);
     assert.ok(data.data[0].foodId);
-    assert.ok(data.data[0].foodName);
-    assert.ok(data.data[0].location);
+    assert.ok(data.data[0].deadlineAnalysis);
+    assert.ok(data.data[0].urgencyTier);
   });
 
   it('3. POST /api/donations validates payload and returns 201 Created', async () => {
@@ -71,7 +71,9 @@ describe('ShareBite Foundation API Tests', () => {
       donorId: 'test_donor_123',
       location: {
         address: '77 Market Road',
-        city: 'Metro City'
+        city: 'Metro City',
+        latitude: 12.9716,
+        longitude: 77.5946
       },
       preparedTime: new Date().toISOString(),
       pickupDeadline: new Date(Date.now() + 86400000).toISOString(),
@@ -124,14 +126,16 @@ describe('ShareBite Foundation API Tests', () => {
     assert.equal(status, 200);
     assert.equal(data.success, true);
     assert.ok(data.data.totalMealsSaved > 0);
+    assert.ok(data.data.co2EmissionsAvoidedKg > 0);
   });
 
-  it('8. GET /api/stats/impact returns 200 with environmental metrics', async () => {
+  it('8. GET /api/stats/impact returns 200 with environmental metrics & equivalencies', async () => {
     const { status, data } = await get('/stats/impact');
     assert.equal(status, 200);
     assert.equal(data.success, true);
-    assert.ok(data.data.totalKgFoodSaved > 0);
-    assert.ok(data.data.co2EmissionsAvoidedKg > 0);
+    assert.ok(data.data.coreMetrics.totalMealsRescued > 0);
+    assert.ok(data.data.coreMetrics.waterSavedLiters > 0);
+    assert.ok(data.data.environmentalEquivalents.carKilometersAvoided);
   });
 
   it('9. GET /api/admin/users succeeds with mock admin user', async () => {
@@ -146,5 +150,68 @@ describe('ShareBite Foundation API Tests', () => {
     assert.equal(status, 404);
     assert.equal(data.success, false);
     assert.ok(data.message.includes('not found'));
+  });
+
+  // =========================================================================
+  // MEMBER 4 - SMART FEATURES VERIFICATION TESTS
+  // =========================================================================
+
+  it('11. GET /api/matching/donations/:foodId/ngos matches nearby NGOs using Haversine formula', async () => {
+    const { status, data } = await get('/matching/donations/food_001/ngos?radius=25');
+    assert.equal(status, 200);
+    assert.equal(data.success, true);
+    assert.ok(data.data.matches.length >= 1);
+    // Nearest NGO should have distance <= 25km and computed transit ETA
+    const topMatch = data.data.matches[0];
+    assert.ok(typeof topMatch.distanceKm === 'number');
+    assert.ok(topMatch.distanceKm <= 25);
+    assert.ok(topMatch.estimatedTransitMinutes > 0);
+    assert.ok(typeof topMatch.matchScore === 'number');
+  });
+
+  it('12. GET /api/matching/nearby-donations finds active listings for given coordinates', async () => {
+    const { status, data } = await get('/matching/nearby-donations?lat=12.9716&lng=77.5946&radius=20');
+    assert.equal(status, 200);
+    assert.equal(data.success, true);
+    assert.ok(Array.isArray(data.data.donations));
+    assert.ok(data.data.donations.length >= 1);
+    assert.ok(typeof data.data.donations[0].distanceKm === 'number');
+  });
+
+  it('13. GET /api/matching/ngos lists registered recipient shelters', async () => {
+    const { status, data } = await get('/matching/ngos');
+    assert.equal(status, 200);
+    assert.equal(data.success, true);
+    assert.ok(Array.isArray(data.data));
+    assert.ok(data.data.length >= 3);
+  });
+
+  it('14. GET /api/donations/warnings/expiring-soon filters perishable listings within threshold', async () => {
+    const { status, data } = await get('/donations/warnings/expiring-soon?hours=6');
+    assert.equal(status, 200);
+    assert.equal(data.success, true);
+    assert.ok(Array.isArray(data.data));
+    assert.ok(data.data.length >= 1);
+    // Verified that deadlineAnalysis has an active urgency tier
+    assert.ok(['CRITICAL', 'EXPIRING_SOON'].includes(data.data[0].urgencyTier));
+    assert.ok(data.data[0].deadlineAnalysis.warningMessage);
+  });
+
+  it('15. POST /api/stats/calculate computes dynamic carbon & water savings for custom target', async () => {
+    const { status, data } = await post('/stats/calculate', { mealsSaved: 500 });
+    assert.equal(status, 200);
+    assert.equal(data.success, true);
+    assert.equal(data.data.coreMetrics.totalMealsRescued, 500);
+    assert.ok(data.data.coreMetrics.co2EmissionsAvoidedKg > 0);
+    assert.ok(data.data.coreMetrics.waterSavedLiters > 0);
+  });
+
+  it('16. GET /api/stats/leaderboard returns top community rescue contributors', async () => {
+    const { status, data } = await get('/stats/leaderboard');
+    assert.equal(status, 200);
+    assert.equal(data.success, true);
+    assert.ok(Array.isArray(data.data.topDonors));
+    assert.ok(Array.isArray(data.data.topRecipientNGOs));
+    assert.ok(data.data.topDonors[0].mealsRescued > 0);
   });
 });

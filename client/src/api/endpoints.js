@@ -14,10 +14,11 @@ export const API_ENDPOINTS = {
     VERIFY_TOKEN: '/auth/verify-token'
   },
 
-  // Food Donations (Teammate 3)
+  // Food Donations (Teammate 3 + Member 4 Deadline Warnings)
   DONATIONS: {
     LIST: '/donations',
     GET_BY_ID: (foodId) => `/donations/${foodId}`,
+    EXPIRING_SOON: (hours = 5) => `/donations/warnings/expiring-soon?hours=${hours}`,
     CREATE: '/donations',
     UPDATE: (foodId) => `/donations/${foodId}`,
     UPDATE_STATUS: (foodId) => `/donations/${foodId}/status`,
@@ -33,6 +34,13 @@ export const API_ENDPOINTS = {
     BY_USER: (receiverId) => `/requests/user/${receiverId}`
   },
 
+  // Smart NGO Matching (Member 4)
+  MATCHING: {
+    NEARBY_NGOS: (foodId, radius = 20) => `/matching/donations/${foodId}/ngos?radius=${radius}`,
+    NEARBY_DONATIONS: (lat, lng, radius = 15) => `/matching/nearby-donations?lat=${lat}&lng=${lng}&radius=${radius}`,
+    ALL_NGOS: '/matching/ngos'
+  },
+
   // Admin Dashboard (Teammate 3)
   ADMIN: {
     USERS: '/admin/users',
@@ -41,11 +49,13 @@ export const API_ENDPOINTS = {
     REPORTS: '/admin/reports'
   },
 
-  // Statistics & Impact (Teammate 3)
+  // Statistics & Impact Analytics (Member 4)
   STATS: {
     OVERVIEW: '/stats/overview',
     IMPACT: '/stats/impact',
-    CATEGORIES: '/stats/categories'
+    CATEGORIES: '/stats/categories',
+    LEADERBOARD: '/stats/leaderboard',
+    CALCULATE: '/stats/calculate'
   }
 };
 
