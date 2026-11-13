@@ -125,10 +125,10 @@ Each teammate works in an isolated area to avoid git merge conflicts:
 
 | Teammate | Assigned Domain | Target Files |
 |---|---|---|
-| **Architect (You)** | Architecture & Integration | Monorepo config, `server.js`, `app.js`, `routes/index.js`, `docs/*` |
-| **Teammate 1** | Frontend & UI | `client/src/pages/*`, `client/src/components/*`, `client/src/App.jsx` |
-| **Teammate 2** | Firebase & Database | `server/src/config/firebase.js`, `server/src/middleware/auth.middleware.js`, `server/src/services/auth.service.js` |
-| **Teammate 3** | Donations, Requests & Admin | `server/src/services/donation.service.js`, `server/src/services/request.service.js`, `server/src/services/admin.service.js` |
+| **THANUSH** | Architecture & Integration | Monorepo config, `server.js`, `app.js`, `routes/index.js`, `docs/*` |
+| **TANISHA** | Frontend & UI | `client/src/pages/*`, `client/src/components/*`, `client/src/App.jsx` |
+| **SAMARTH** | Firebase & Database | `server/src/config/firebase.js`, `server/src/middleware/auth.middleware.js`, `server/src/services/auth.service.js` |
+| **SHREYA** | Donations, Requests & Admin | `server/src/services/donation.service.js`, `server/src/services/request.service.js`, `server/src/services/admin.service.js` |
 
 ---
 
