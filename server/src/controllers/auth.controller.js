@@ -2,37 +2,55 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { ApiError } from '../utils/ApiError.js';
 import { authService } from '../services/auth.service.js';
+import { db } from '../config/firebase.js';
 
 /**
  * ==============================================================================
- * AUTHENTICATION CONTROLLER (INTEGRATION PLACEHOLDERS)
+ * AUTHENTICATION CONTROLLER (DATABASE INTEGRATED)
  * ==============================================================================
- * Responsible Teammate: Teammate 2 (Firebase & Database)
+ * Responsible Teammate: Samarth (Member 2 – Backend & Database)
  */
 
 export const register = asyncHandler(async (req, res) => {
-  // Teammate 2 Integration Point: register user via authService
   const newUser = await authService.registerUser(req.body);
-  return ApiResponse.created(res, newUser, 'User registered successfully. Integration placeholder active.');
+  return ApiResponse.created(res, newUser, 'User registered and stored in database successfully');
 });
 
 export const login = asyncHandler(async (req, res) => {
-  // Teammate 2 Integration Point: client sends Firebase ID token or credentials
-  const { email } = req.body;
-  const mockAuthResponse = {
-    token: `sb_mock_token_${Date.now()}`,
-    user: {
-      userId: `usr_${Date.now()}`,
-      email,
-      name: 'Sample User',
+  const { email, password } = req.body;
+  if (!email) {
+    throw ApiError.badRequest('Email is required for login');
+  }
+
+  // Find user by email in database
+  const normalizedEmail = email.trim().toLowerCase();
+  const snapshot = await db.collection('users').where('email', '==', normalizedEmail).get();
+
+  let user = null;
+  if (!snapshot.empty) {
+    user = snapshot.docs[0].data();
+  } else {
+    // If not found, create a new user profile on first login
+    const name = email.split('@')[0].replace(/[._-]/g, ' ');
+    user = await authService.registerUser({
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      email: normalizedEmail,
       role: 'DONOR'
-    }
-  };
-  return ApiResponse.success(res, mockAuthResponse, 'Login successful. Integration placeholder active.');
+    });
+  }
+
+  const token = `sb_token_${user.userId}`;
+  return ApiResponse.success(
+    res,
+    {
+      token,
+      user
+    },
+    'Login successful'
+  );
 });
 
 export const getCurrentUser = asyncHandler(async (req, res) => {
-  // Returns currently authenticated user attached by auth.middleware.js
   if (!req.user) {
     throw ApiError.unauthorized('No user session active');
   }

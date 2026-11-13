@@ -8,12 +8,13 @@ import { donationService } from '../services/donation.service.js';
  * FOOD DONATIONS CONTROLLER
  * ==============================================================================
  * Responsible Teammate: Teammate 3 / Shreya (Food Donation, Requests & Admin)
+ * Integration with Member 4 (Smart Features & Deadline Warnings)
  * ==============================================================================
  */
 
 export const getAllDonations = asyncHandler(async (req, res) => {
-  const { category, status, city, donorId } = req.query;
-  const donations = await donationService.getAllDonations({ category, status, city, donorId });
+  const { category, status, city, donorId, urgency } = req.query;
+  const donations = await donationService.getAllDonations({ category, status, city, donorId, urgency });
   return ApiResponse.success(res, donations, 'Donations retrieved successfully', 200, {
     count: donations.length
   });
@@ -28,8 +29,23 @@ export const getDonationById = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, donation, 'Donation details retrieved');
 });
 
+/**
+ * Pickup Deadline Warnings: Get donations expiring soon within threshold hours
+ * Member 4 - Pickup deadline warnings
+ */
+export const getExpiringSoonDonations = asyncHandler(async (req, res) => {
+  const maxHours = req.query.hours ? parseFloat(req.query.hours) : 5;
+  const expiring = await donationService.getExpiringSoonDonations(maxHours);
+  return ApiResponse.success(
+    res,
+    expiring,
+    `Retrieved ${expiring.length} food donations expiring within ${maxHours} hours`,
+    200,
+    { count: expiring.length, maxHoursThreshold: maxHours }
+  );
+});
+
 export const createDonation = asyncHandler(async (req, res) => {
-  // Validate and persist food donation
   const created = await donationService.createDonation(req.body);
   return ApiResponse.created(res, created, 'Food donation listing created successfully');
 });
@@ -56,6 +72,7 @@ export const deleteDonation = asyncHandler(async (req, res) => {
 export const donationController = {
   getAllDonations,
   getDonationById,
+  getExpiringSoonDonations,
   createDonation,
   updateDonation,
   updateDonationStatus,
